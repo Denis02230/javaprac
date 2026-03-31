@@ -1,0 +1,109 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'bankinfo'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+dependencies {
+    implementation 'org.hibernate:hibernate-core:5.6.15.Final'
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-55:3.7.6'
+    implementation 'org.postgresql:postgresql:42.7.7'
+
+    testImplementation 'org.testng:testng:7.11.0'
+}
+
+application {
+    mainClass = 'bankinfo.app.SmokeTest'
+}
+
+test {
+    useTestNG()
+}
+
+def dbHost = '127.0.0.1'
+def dbPort = '5432'
+def dbName = 'bankinfo'
+def dbUser = 'postgres'
+def dbPassword = 'postgres'
+
+tasks.register('dbCreate', Exec) {
+    environment 'PGPASSWORD', dbPassword
+    commandLine 'psql',
+            '-v', 'ON_ERROR_STOP=1',
+            '-h', dbHost,
+            '-p', dbPort,
+            '-U', dbUser,
+            '-d', dbName,
+            '-f', 'src/main/resources/db/create.sql'
+}
+
+tasks.register('dbClean', Exec) {
+    environment 'PGPASSWORD', dbPassword
+    commandLine 'psql',
+            '-v', 'ON_ERROR_STOP=1',
+            '-h', dbHost,
+            '-p', dbPort,
+            '-U', dbUser,
+            '-d', dbName,
+            '-f', 'src/main/resources/db/clean.sql'
+}
+
+tasks.register('dbInit', Exec) {
+    environment 'PGPASSWORD', dbPassword
+    commandLine 'psql',
+            '-v', 'ON_ERROR_STOP=1',
+            '-h', dbHost,
+            '-p', dbPort,
+            '-U', dbUser,
+            '-d', dbName,
+            '-f', 'src/main/resources/db/init.sql'
+}
+
+tasks.register('dbShow', Exec) {
+    environment 'PGPASSWORD', dbPassword
+    commandLine 'psql',
+            '-v', 'ON_ERROR_STOP=1',
+            '-h', dbHost,
+            '-p', dbPort,
+            '-U', dbUser,
+            '-d', dbName,
+            '-f', 'src/main/resources/db/show.sql'
+}
+
+tasks.named('dbClean') {
+    dependsOn 'dbCreate'
+}
+
+tasks.named('dbInit') {
+    dependsOn 'dbClean'
+}
+
+tasks.named('dbShow') {
+    dependsOn 'dbInit'
+}
+
+tasks.register('runSmoke', JavaExec) {
+    group = 'application'
+    description = 'Runs Hibernate smoke test'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'bankinfo.app.SmokeTest'
+    dependsOn 'classes', 'dbInit'
+}
+
+tasks.register('runAllTests') {
+    group = 'verification'
+    description = 'Runs all TestNG tests'
+    dependsOn 'test'
+}
