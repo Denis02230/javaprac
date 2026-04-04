@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientDao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.dao</a> &gt; <span class="el_source">ClientDao.java</span></div><h1>ClientDao.java</h1><pre class="source lang-java linenums">package bankinfo.dao;
+
+import bankinfo.model.Client;
+import bankinfo.model.ClientType;
+import bankinfo.util.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+
+import java.util.List;
+import java.util.Optional;
+
+<span class="fc" id="L12">public class ClientDao {</span>
+
+    public List&lt;Client&gt; findAll() {
+<span class="fc" id="L15">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L16">            return session.createQuery(</span>
+                    &quot;select c from Client c order by c.id&quot;,
+                    Client.class
+<span class="fc" id="L19">            ).list();</span>
+<span class="nc" id="L20">        } catch (Exception e) {</span>
+<span class="nc" id="L21">            throw new DaoException(&quot;Failed to load all clients&quot;, e);</span>
+        }
+    }
+
+    public Optional&lt;Client&gt; findById(Long id) {
+<span class="fc" id="L26">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L27">            Client client = session.get(Client.class, id);</span>
+<span class="fc" id="L28">            return Optional.ofNullable(client);</span>
+<span class="nc" id="L29">        } catch (Exception e) {</span>
+<span class="nc" id="L30">            throw new DaoException(&quot;Failed to load client by id=&quot; + id, e);</span>
+        }
+    }
+
+    public Optional&lt;Client&gt; findByIdWithAddresses(Long id) {
+<span class="fc" id="L35">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L36">            List&lt;Client&gt; result = session.createQuery(</span>
+                    &quot;select distinct c from Client c &quot; +
+                    &quot;left join fetch c.addresses &quot; +
+                    &quot;where c.id = :id&quot;,
+                    Client.class
+<span class="fc" id="L41">            ).setParameter(&quot;id&quot;, id).list();</span>
+
+<span class="fc bfc" id="L43" title="All 2 branches covered.">            if (result.isEmpty()) {</span>
+<span class="fc" id="L44">                return Optional.empty();</span>
+            }
+
+<span class="fc" id="L47">            return Optional.of(result.get(0));</span>
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">        } catch (Exception e) {</span>
+<span class="nc" id="L49">            throw new DaoException(&quot;Failed to load client with addresses by id=&quot; + id, e);</span>
+        }
+    }
+
+    public Optional&lt;Client&gt; findByIdWithContacts(Long id) {
+<span class="fc" id="L54">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L55">            Client client = session.get(Client.class, id);</span>
+
+<span class="fc bfc" id="L57" title="All 2 branches covered.">            if (client == null) {</span>
+<span class="fc" id="L58">                return Optional.empty();</span>
+            }
+
+<span class="fc" id="L61">            client.getPhones().size();</span>
+<span class="fc" id="L62">            client.getEmails().size();</span>
+<span class="fc" id="L63">            client.getContactPersons().size();</span>
+
+<span class="fc" id="L65">            return Optional.of(client);</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        } catch (Exception e) {</span>
+<span class="nc" id="L67">            throw new DaoException(&quot;Failed to load client with contacts by id=&quot; + id, e);</span>
+        }
+    }
+
+    public List&lt;Client&gt; findByType(ClientType clientType) {
+<span class="fc" id="L72">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L73">            return session.createQuery(</span>
+                    &quot;select c from Client c &quot; +
+                    &quot;where c.clientType = :clientType &quot; +
+                    &quot;order by c.id&quot;,
+                    Client.class
+<span class="fc" id="L78">            ).setParameter(&quot;clientType&quot;, clientType).list();</span>
+<span class="nc" id="L79">        } catch (Exception e) {</span>
+<span class="nc" id="L80">            throw new DaoException(&quot;Failed to load clients by type=&quot; + clientType, e);</span>
+        }
+    }
+
+    public List&lt;Client&gt; findByDisplayNameContains(String text) {
+<span class="fc" id="L85">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L86">            return session.createQuery(</span>
+                    &quot;select c from Client c &quot; +
+                    &quot;where lower(c.displayName) like :pattern &quot; +
+                    &quot;order by c.id&quot;,
+                    Client.class
+<span class="fc" id="L91">            ).setParameter(&quot;pattern&quot;, &quot;%&quot; + text.toLowerCase() + &quot;%&quot;)</span>
+<span class="fc" id="L92">             .list();</span>
+<span class="nc" id="L93">        } catch (Exception e) {</span>
+<span class="nc" id="L94">            throw new DaoException(&quot;Failed to search clients by display name&quot;, e);</span>
+        }
+    }
+
+    public List&lt;Client&gt; findOrganizationsWithContactPersons() {
+<span class="fc" id="L99">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L100">            return session.createQuery(</span>
+                    &quot;select distinct c from Client c &quot; +
+                    &quot;join fetch c.contactPersons cp &quot; +
+                    &quot;where c.clientType = :clientType &quot; +
+                    &quot;order by c.id&quot;,
+                    Client.class
+<span class="fc" id="L106">            ).setParameter(&quot;clientType&quot;, ClientType.ORG)</span>
+<span class="fc" id="L107">             .list();</span>
+<span class="nc" id="L108">        } catch (Exception e) {</span>
+<span class="nc" id="L109">            throw new DaoException(&quot;Failed to load organizations with contact persons&quot;, e);</span>
+        }
+    }
+
+    public Client save(Client client) {
+<span class="fc" id="L114">        Transaction tx = null;</span>
+
+<span class="fc" id="L116">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L117">            tx = session.beginTransaction();</span>
+<span class="fc" id="L118">            session.saveOrUpdate(client);</span>
+<span class="fc" id="L119">            tx.commit();</span>
+<span class="fc" id="L120">            return client;</span>
+<span class="nc" id="L121">        } catch (Exception e) {</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">            if (tx != null) {</span>
+<span class="nc" id="L123">                tx.rollback();</span>
+            }
+<span class="nc" id="L125">            throw new DaoException(&quot;Failed to save client&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

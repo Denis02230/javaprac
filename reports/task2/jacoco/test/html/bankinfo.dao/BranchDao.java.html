@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BranchDao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.dao</a> &gt; <span class="el_source">BranchDao.java</span></div><h1>BranchDao.java</h1><pre class="source lang-java linenums">package bankinfo.dao;
+
+import bankinfo.model.Branch;
+import bankinfo.util.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+
+import java.util.List;
+import java.util.Optional;
+
+<span class="fc" id="L11">public class BranchDao {</span>
+
+    public List&lt;Branch&gt; findAll() {
+<span class="fc" id="L14">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L15">            return session.createQuery(</span>
+                    &quot;select b from Branch b order by b.id&quot;,
+                    Branch.class
+<span class="fc" id="L18">            ).list();</span>
+<span class="nc" id="L19">        } catch (Exception e) {</span>
+<span class="nc" id="L20">            throw new DaoException(&quot;Failed to load all branches&quot;, e);</span>
+        }
+    }
+
+    public Optional&lt;Branch&gt; findById(Long id) {
+<span class="fc" id="L25">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L26">            Branch branch = session.get(Branch.class, id);</span>
+<span class="fc" id="L27">            return Optional.ofNullable(branch);</span>
+<span class="nc" id="L28">        } catch (Exception e) {</span>
+<span class="nc" id="L29">            throw new DaoException(&quot;Failed to load branch by id=&quot; + id, e);</span>
+        }
+    }
+
+    public Optional&lt;Branch&gt; findByIdWithAccounts(Long id) {
+<span class="fc" id="L34">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L35">            List&lt;Branch&gt; result = session.createQuery(</span>
+                    &quot;select distinct b from Branch b &quot; +
+                    &quot;left join fetch b.accounts a &quot; +
+                    &quot;where b.id = :id &quot; +
+                    &quot;order by a.id&quot;,
+                    Branch.class
+<span class="fc" id="L41">            ).setParameter(&quot;id&quot;, id).list();</span>
+
+<span class="fc bfc" id="L43" title="All 2 branches covered.">            if (result.isEmpty()) {</span>
+<span class="fc" id="L44">                return Optional.empty();</span>
+            }
+
+<span class="fc" id="L47">            return Optional.of(result.get(0));</span>
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">        } catch (Exception e) {</span>
+<span class="nc" id="L49">            throw new DaoException(&quot;Failed to load branch with accounts by id=&quot; + id, e);</span>
+        }
+    }
+
+    public List&lt;Branch&gt; findByNameContains(String text) {
+<span class="fc" id="L54">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L55">            return session.createQuery(</span>
+                    &quot;select b from Branch b &quot; +
+                    &quot;where lower(b.name) like :pattern &quot; +
+                    &quot;order by b.id&quot;,
+                    Branch.class
+<span class="fc" id="L60">            ).setParameter(&quot;pattern&quot;, &quot;%&quot; + text.toLowerCase() + &quot;%&quot;)</span>
+<span class="fc" id="L61">             .list();</span>
+<span class="nc" id="L62">        } catch (Exception e) {</span>
+<span class="nc" id="L63">            throw new DaoException(&quot;Failed to search branches by name&quot;, e);</span>
+        }
+    }
+
+    public List&lt;Branch&gt; findBranchesWithOpenAccounts() {
+<span class="fc" id="L68">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L69">            return session.createQuery(</span>
+                    &quot;select distinct b from Branch b &quot; +
+                    &quot;join b.accounts a &quot; +
+                    &quot;where a.closedAt is null &quot; +
+                    &quot;order by b.id&quot;,
+                    Branch.class
+<span class="fc" id="L75">            ).list();</span>
+<span class="nc" id="L76">        } catch (Exception e) {</span>
+<span class="nc" id="L77">            throw new DaoException(&quot;Failed to load branches with open accounts&quot;, e);</span>
+        }
+    }
+
+    public Branch save(Branch branch) {
+<span class="fc" id="L82">        Transaction tx = null;</span>
+
+<span class="fc" id="L84">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L85">            tx = session.beginTransaction();</span>
+<span class="fc" id="L86">            session.saveOrUpdate(branch);</span>
+<span class="fc" id="L87">            tx.commit();</span>
+<span class="fc" id="L88">            return branch;</span>
+<span class="nc" id="L89">        } catch (Exception e) {</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">            if (tx != null) {</span>
+<span class="nc" id="L91">                tx.rollback();</span>
+            }
+<span class="nc" id="L93">            throw new DaoException(&quot;Failed to save branch&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
