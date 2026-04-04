@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id 'jacoco'
 }
 
 group = 'bankinfo'
@@ -28,8 +29,31 @@ application {
     mainClass = 'bankinfo.app.SmokeTest'
 }
 
+jacoco {
+    toolVersion = "0.8.14"
+}
+
+jacocoTestReport {
+    dependsOn test
+
+    classDirectories.setFrom(
+        files(classDirectories.files.collect {
+            fileTree(dir: it, include: [
+                    "bankinfo/dao/**"
+            ])
+        })
+    )
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+}
+
 test {
     useTestNG()
+    finalizedBy jacocoTestReport
 }
 
 def dbHost = '127.0.0.1'
