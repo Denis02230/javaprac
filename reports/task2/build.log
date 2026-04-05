@@ -4,10 +4,10 @@
 > Task :compileTestJava UP-TO-DATE
 > Task :processTestResources NO-SOURCE
 > Task :testClasses UP-TO-DATE
-> Task :test
-> Task :runAllTests
-> Task :jacocoTestReport
+> Task :test UP-TO-DATE
+> Task :jacocoTestReport UP-TO-DATE
+> Task :runAllTests UP-TO-DATE
 
-BUILD SUCCESSFUL in 42s
-5 actionable tasks: 2 executed, 3 up-to-date
+BUILD SUCCESSFUL in 1s
+5 actionable tasks: 5 up-to-date
 Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.4.1/userguide/configuration_cache_enabling.html

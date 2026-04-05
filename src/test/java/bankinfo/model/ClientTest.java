@@ -163,4 +163,35 @@ public class ClientTest {
         assertTrue(client.getContactPersons().isEmpty());
         assertNull(contactPerson.getClient());
     }
+
+    @Test
+    public void gettersSettersAndToString_shouldWork() {
+    OffsetDateTime createdAt = OffsetDateTime.parse("2026-03-01T10:00:00+03:00");
+
+    Client client = new Client(
+            ClientType.PERSON,
+            "Initial Name",
+            createdAt
+    );
+
+    client.setClientType(ClientType.ORG);
+    client.setDisplayName("Updated Name");
+
+    OffsetDateTime updatedCreatedAt = OffsetDateTime.parse("2026-03-02T11:30:00+03:00");
+    client.setCreatedAt(updatedCreatedAt);
+
+    assertEquals(client.getClientType(), ClientType.ORG);
+    assertEquals(client.getDisplayName(), "Updated Name");
+    assertEquals(client.getCreatedAt(), updatedCreatedAt);
+
+    assertNotNull(client.getAccounts());
+    assertTrue(client.getAccounts().isEmpty());
+
+    String text = client.toString();
+    assertNotNull(text);
+    assertTrue(text.contains("Client{"));
+    assertTrue(text.contains("clientType=ORG"));
+    assertTrue(text.contains("displayName='Updated Name'"));
+    assertTrue(text.contains("createdAt=2026-03-02T11:30+03:00"));
+    }
 }

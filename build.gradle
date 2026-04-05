@@ -36,14 +36,6 @@ jacoco {
 jacocoTestReport {
     dependsOn test
 
-    classDirectories.setFrom(
-        files(classDirectories.files.collect {
-            fileTree(dir: it, include: [
-                    "bankinfo/dao/**"
-            ])
-        })
-    )
-
     reports {
         xml.required = true
         html.required = true
@@ -53,6 +45,8 @@ jacocoTestReport {
 
 test {
     useTestNG()
+    forkEvery = 1
+    maxParallelForks = 1
     finalizedBy jacocoTestReport
 }
 

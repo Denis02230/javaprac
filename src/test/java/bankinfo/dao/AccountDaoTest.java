@@ -257,4 +257,38 @@ public class AccountDaoTest {
         assertEquals(loaded.get().getAccountType().getId(), Long.valueOf(2L));
         assertEquals(loaded.get().getBalance(), new BigDecimal("2500.00"));
     }
+
+    @Test
+    public void findByIdDetailed_shouldReturnEmpty_whenMissing() {
+        Optional<Account> result = accountDao.findByIdDetailed(999L);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void save_shouldUpdateExistingAccount() {
+        Optional<Account> loadedBefore = accountDao.findById(1L);
+        assertTrue(loadedBefore.isPresent());
+
+        Account account = loadedBefore.get();
+        account.setBalance(new BigDecimal("7777.77"));
+        account.setStatus(AccountStatus.CLOSED);
+        account.setClosedAt(OffsetDateTime.parse("2026-03-10T12:00:00+03:00"));
+
+        Account saved = accountDao.save(account);
+
+        assertNotNull(saved);
+        assertEquals(saved.getId(), Long.valueOf(1L));
+
+        Optional<Account> loadedAfter = accountDao.findById(1L);
+        assertTrue(loadedAfter.isPresent());
+        assertEquals(loadedAfter.get().getId(), Long.valueOf(1L));
+        assertEquals(loadedAfter.get().getBalance(), new BigDecimal("7777.77"));
+        assertEquals(loadedAfter.get().getStatus(), AccountStatus.CLOSED);
+        assertEquals(
+                loadedAfter.get().getClosedAt(),
+                OffsetDateTime.parse("2026-03-10T12:00:00+03:00")
+        );
+    }
 }

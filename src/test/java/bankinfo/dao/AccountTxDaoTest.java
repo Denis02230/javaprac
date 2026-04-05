@@ -196,4 +196,40 @@ public class AccountTxDaoTest {
         assertEquals(loaded.get().getDescription(), "Test transaction");
         assertEquals(loaded.get().getAccount().getId(), Long.valueOf(1L));
     }
+
+    @Test
+    public void findByIdDetailed_shouldReturnEmpty_whenMissing() {
+        Optional<AccountTx> result = accountTxDao.findByIdDetailed(999L);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void save_shouldUpdateExistingTransaction() {
+        Optional<AccountTx> loadedBefore = accountTxDao.findById(1L);
+        assertTrue(loadedBefore.isPresent());
+
+        AccountTx tx = loadedBefore.get();
+        tx.setTxType(TxType.DEBIT);
+        tx.setAmount(new BigDecimal("1234.56"));
+        tx.setTxTime(OffsetDateTime.parse("2026-03-11T09:30:00+03:00"));
+        tx.setDescription("Updated transaction");
+
+        AccountTx saved = accountTxDao.save(tx);
+
+        assertNotNull(saved);
+        assertEquals(saved.getId(), Long.valueOf(1L));
+
+        Optional<AccountTx> loadedAfter = accountTxDao.findById(1L);
+        assertTrue(loadedAfter.isPresent());
+        assertEquals(loadedAfter.get().getId(), Long.valueOf(1L));
+        assertEquals(loadedAfter.get().getTxType(), TxType.DEBIT);
+        assertEquals(loadedAfter.get().getAmount(), new BigDecimal("1234.56"));
+        assertEquals(
+                loadedAfter.get().getTxTime(),
+                OffsetDateTime.parse("2026-03-11T09:30:00+03:00")
+        );
+        assertEquals(loadedAfter.get().getDescription(), "Updated transaction");
+    }
 }

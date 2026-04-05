@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AccountTx.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.model</a> &gt; <span class="el_source">AccountTx.java</span></div><h1>AccountTx.java</h1><pre class="source lang-java linenums">package bankinfo.model;
+
+import io.hypersistence.utils.hibernate.type.basic.PostgreSQLEnumType;
+import org.hibernate.annotations.Type;
+import org.hibernate.annotations.TypeDef;
+
+import javax.persistence.*;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+
+@Entity
+@Table(name = &quot;account_tx&quot;)
+@TypeDef(name = &quot;pgsql_enum&quot;, typeClass = PostgreSQLEnumType.class)
+public class AccountTx {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = &quot;tx_id&quot;)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = &quot;account_id&quot;, nullable = false)
+    private Account account;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;tx_type&quot;, nullable = false, columnDefinition = &quot;tx_type_enum&quot;)
+    @Type(type = &quot;pgsql_enum&quot;)
+    private TxType txType;
+
+    @Column(name = &quot;amount&quot;, nullable = false, precision = 14, scale = 2)
+    private BigDecimal amount;
+
+    @Column(name = &quot;tx_time&quot;, nullable = false)
+    private OffsetDateTime txTime;
+
+    @Column(name = &quot;comment&quot;, length = 400)
+    private String description;
+
+<span class="fc" id="L39">    public AccountTx() {</span>
+<span class="fc" id="L40">    }</span>
+
+    public Long getId() {
+<span class="fc" id="L43">        return id;</span>
+    }
+
+    public Account getAccount() {
+<span class="fc" id="L47">        return account;</span>
+    }
+
+    public void setAccount(Account account) {
+<span class="fc" id="L51">        this.account = account;</span>
+<span class="fc" id="L52">    }</span>
+
+    public TxType getTxType() {
+<span class="fc" id="L55">        return txType;</span>
+    }
+
+    public void setTxType(TxType txType) {
+<span class="fc" id="L59">        this.txType = txType;</span>
+<span class="fc" id="L60">    }</span>
+
+    public BigDecimal getAmount() {
+<span class="fc" id="L63">        return amount;</span>
+    }
+
+    public void setAmount(BigDecimal amount) {
+<span class="fc" id="L67">        this.amount = amount;</span>
+<span class="fc" id="L68">    }</span>
+
+    public OffsetDateTime getTxTime() {
+<span class="fc" id="L71">        return txTime;</span>
+    }
+
+    public void setTxTime(OffsetDateTime txTime) {
+<span class="fc" id="L75">        this.txTime = txTime;</span>
+<span class="fc" id="L76">    }</span>
+
+    public String getDescription() {
+<span class="fc" id="L79">        return description;</span>
+    }
+
+    public void setDescription(String description) {
+<span class="fc" id="L83">        this.description = description;</span>
+<span class="fc" id="L84">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L88">        return &quot;AccountTx{&quot; +</span>
+                &quot;id=&quot; + id +
+                &quot;, txType=&quot; + txType +
+                &quot;, amount=&quot; + amount +
+                &quot;, txTime=&quot; + txTime +
+                &quot;, description='&quot; + description + '\'' +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

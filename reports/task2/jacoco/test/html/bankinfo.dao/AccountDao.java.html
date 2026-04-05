@@ -45,7 +45,7 @@ import java.util.Optional;
                     Account.class
 <span class="fc" id="L46">            ).setParameter(&quot;id&quot;, id).list();</span>
 
-<span class="pc bpc" id="L48" title="1 of 2 branches missed.">            return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">            return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));</span>
 <span class="nc" id="L49">        } catch (Exception e) {</span>
 <span class="nc" id="L50">            throw new DaoException(&quot;Failed to load detailed account by id=&quot; + id, e);</span>
         }
