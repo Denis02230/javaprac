@@ -48,10 +48,7 @@
 - runAllTests
 - webCoverage
 - backendCoverage
-- fullDelivery
-
-После fullDelivery создан deploy-артефакт:
-- build/deploy/bankinfo-1.0-SNAPSHOT.war
+- launchAll
 
 
 
@@ -92,4 +89,4 @@ target-ы gradle:
 - gradle runAllTests
 - gradle webCoverage
 - gradle backendCoverage
-- gradle fullDelivery
+- gradle launchAll
