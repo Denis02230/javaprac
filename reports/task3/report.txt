@@ -1,0 +1,95 @@
+В части 3 реализован Web-интерфейс системы учета банковских клиентов, счетов, типов счетов, операций и начисления процентов.
+
+
+В проекте присутствуют все страницы P1-P17 из концептуальной модели:
+- P1: p1-home.jsp
+- P2-P4: страницы отделений
+- P5-P7: страницы клиентов
+- P8-P12: страницы счетов
+- P13: журнал операций
+- P14-P16: виды счетов
+- P17: начисление процентов
+
+Файлы JSP: src/main/webapp/WEB-INF/jsp/p*-*.jsp
+
+
+В проекте реализованы контроллеры:
+- HomeController
+- BranchController
+- ClientController
+- AccountController
+- OperationController
+- AccountTypeController
+- InterestController
+- WebExceptionHandler
+
+Покрыты основные маршруты:
+- просмотр списков и карточек
+- формы создания/редактирования
+- сохранение и удаление
+- операции по счетам
+- закрытие счета
+- запуск начисления процентов
+
+
+Для конфигурации Spring и servlet реализованы:
+- src/main/resources/spring/bankinfo-mvc.xml
+  - включен annotation-driven MVC
+  - component scan по пакету bankinfo
+  - InternalResourceViewResolver с /WEB-INF/jsp/*.jsp
+- src/main/webapp/WEB-INF/web.xml
+  - DispatcherServlet
+  - mapping на "/"
+- src/main/webapp/WEB-INF/bankinfo-servlet.xml
+  - импорт основной spring-конфигурации
+
+
+В build.gradle присутствуют задачи, и их работоспособность проверена:
+- runAllTests
+- webCoverage
+- backendCoverage
+- fullDelivery
+
+После fullDelivery создан deploy-артефакт:
+- build/deploy/bankinfo-1.0-SNAPSHOT.war
+
+
+
+Полный набор тестов проекта (unit + integration + web):
+- 213 тестов, 0 failures, 0 errors, 0 skipped
+
+Web system tests:
+- 86 тестов, 0 failures, 0 errors, 0 skipped
+
+Backend tests:
+- 127 тестов, 0 failures, 0 errors, 0 skipped
+
+Тесты покрывают все ветки, помимо обработки исключений.
+
+JaCoCo (all tests, build/reports/jacoco/test):
+- INSTRUCTION: 88.79%
+- BRANCH: 76.07%
+- LINE: 88.55%
+- METHOD: 98.96%
+- CLASS: 100.00%
+
+JaCoCo (web-only, build/reports/jacoco/webSystemTest):
+- INSTRUCTION: 69.94%
+- BRANCH: 68.40%
+- LINE: 69.44%
+- METHOD: 73.51%
+- CLASS: 95.74%
+
+JaCoCo (backend-only, build/reports/jacoco/backendTest):
+- INSTRUCTION: 38.51%
+- BRANCH: 13.50%
+- LINE: 42.52%
+- METHOD: 56.62%
+- CLASS: 55.32%
+
+
+target-ы gradle:
+- gradle runAllTests
+- gradle webCoverage
+- gradle backendCoverage
+- gradle fullDelivery

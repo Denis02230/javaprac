@@ -4,10 +4,12 @@ import bankinfo.model.Branch;
 import bankinfo.util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class BranchDao {
 
     public List<Branch> findAll() {
@@ -64,6 +66,28 @@ public class BranchDao {
         }
     }
 
+    public Optional<Branch> findByIdDetailed(Long id) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            List<Branch> result = session.createQuery(
+                    "select distinct b from Branch b " +
+                    "left join fetch b.accounts a " +
+                    "left join fetch a.client " +
+                    "left join fetch a.accountType " +
+                    "where b.id = :id " +
+                    "order by a.id",
+                    Branch.class
+            ).setParameter("id", id).list();
+
+            if (result.isEmpty()) {
+                return Optional.empty();
+            }
+
+            return Optional.of(result.get(0));
+        } catch (Exception e) {
+            throw new DaoException("Failed to load detailed branch by id=" + id, e);
+        }
+    }
+
     public List<Branch> findBranchesWithOpenAccounts() {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             return session.createQuery(
@@ -91,6 +115,24 @@ public class BranchDao {
                 tx.rollback();
             }
             throw new DaoException("Failed to save branch", e);
+        }
+    }
+
+    public void deleteById(Long id) {
+        Transaction tx = null;
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            tx = session.beginTransaction();
+            Branch branch = session.get(Branch.class, id);
+            if (branch != null) {
+                session.delete(branch);
+            }
+            tx.commit();
+        } catch (Exception e) {
+            if (tx != null) {
+                tx.rollback();
+            }
+            throw new DaoException("Failed to delete branch by id=" + id, e);
         }
     }
 }

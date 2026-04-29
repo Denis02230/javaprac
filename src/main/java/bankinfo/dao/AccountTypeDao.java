@@ -4,11 +4,13 @@ import bankinfo.model.AccountType;
 import bankinfo.util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class AccountTypeDao {
 
     public List<AccountType> findAll() {

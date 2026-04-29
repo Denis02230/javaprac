@@ -8,9 +8,11 @@ import bankinfo.model.PhoneType;
 import bankinfo.util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 public class ClientContactDao {
 
     public List<ClientPhone> findPhonesByClientId(Long clientId) {

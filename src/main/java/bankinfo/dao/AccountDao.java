@@ -6,12 +6,14 @@ import bankinfo.model.AccountTx;
 import bankinfo.util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class AccountDao {
 
     public List<Account> findAll() {
@@ -22,6 +24,22 @@ public class AccountDao {
             ).list();
         } catch (Exception e) {
             throw new DaoException("Failed to load all accounts", e);
+        }
+    }
+
+    public List<Account> findAllDetailed() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery(
+                    "select a from Account a " +
+                    "join fetch a.client " +
+                    "join fetch a.branch " +
+                    "join fetch a.accountType " +
+                    "left join fetch a.interestTargetAccount " +
+                    "order by a.id",
+                    Account.class
+            ).list();
+        } catch (Exception e) {
+            throw new DaoException("Failed to load all detailed accounts", e);
         }
     }
 
@@ -48,6 +66,26 @@ public class AccountDao {
             return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
         } catch (Exception e) {
             throw new DaoException("Failed to load detailed account by id=" + id, e);
+        }
+    }
+
+    public Optional<Account> findByIdDetailedWithTransactions(Long id) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            List<Account> result = session.createQuery(
+                    "select distinct a from Account a " +
+                    "join fetch a.client " +
+                    "join fetch a.branch " +
+                    "join fetch a.accountType " +
+                    "left join fetch a.interestTargetAccount " +
+                    "left join fetch a.transactions t " +
+                    "where a.id = :id " +
+                    "order by t.txTime, t.id",
+                    Account.class
+            ).setParameter("id", id).list();
+
+            return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+        } catch (Exception e) {
+            throw new DaoException("Failed to load detailed account with transactions by id=" + id, e);
         }
     }
 

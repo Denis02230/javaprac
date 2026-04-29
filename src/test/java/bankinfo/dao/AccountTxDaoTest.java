@@ -35,6 +35,18 @@ public class AccountTxDaoTest {
     }
 
     @Test
+    public void findAllDetailed_shouldLoadLinkedEntities() {
+        List<AccountTx> txs = accountTxDao.findAllDetailed();
+
+        assertNotNull(txs);
+        assertEquals(txs.size(), 26);
+        assertTrue(txs.stream().allMatch(tx -> tx.getAccount() != null));
+        assertTrue(txs.stream().allMatch(tx -> tx.getAccount().getClient() != null));
+        assertTrue(txs.stream().allMatch(tx -> tx.getAccount().getBranch() != null));
+        assertTrue(txs.stream().allMatch(tx -> tx.getAccount().getAccountType() != null));
+    }
+
+    @Test
     public void findById_shouldReturnTransaction_whenExists() {
         Optional<AccountTx> result = accountTxDao.findById(10L);
 
@@ -146,6 +158,34 @@ public class AccountTxDaoTest {
     @Test
     public void findByPeriod_shouldReturnEmpty_whenOutsideRange() {
         List<AccountTx> txs = accountTxDao.findByPeriod(
+                OffsetDateTime.parse("2027-01-01T00:00:00+00:00"),
+                OffsetDateTime.parse("2027-12-31T23:59:59+00:00")
+        );
+
+        assertNotNull(txs);
+        assertTrue(txs.isEmpty());
+    }
+
+    @Test
+    public void findByPeriodDetailed_shouldReturnMatchingRowsWithLinkedEntities() {
+        List<AccountTx> txs = accountTxDao.findByPeriodDetailed(
+                OffsetDateTime.parse("2026-02-06T00:00:00+00:00"),
+                OffsetDateTime.parse("2026-02-06T23:59:59+00:00")
+        );
+
+        assertEquals(txs.size(), 3);
+        assertEquals(txs.get(0).getId(), Long.valueOf(4L));
+        assertEquals(txs.get(1).getId(), Long.valueOf(13L));
+        assertEquals(txs.get(2).getId(), Long.valueOf(8L));
+        assertTrue(txs.stream().allMatch(tx -> tx.getAccount() != null));
+        assertTrue(txs.stream().allMatch(tx -> tx.getAccount().getClient() != null));
+        assertTrue(txs.stream().allMatch(tx -> tx.getAccount().getBranch() != null));
+        assertTrue(txs.stream().allMatch(tx -> tx.getAccount().getAccountType() != null));
+    }
+
+    @Test
+    public void findByPeriodDetailed_shouldReturnEmpty_whenOutsideRange() {
+        List<AccountTx> txs = accountTxDao.findByPeriodDetailed(
                 OffsetDateTime.parse("2027-01-01T00:00:00+00:00"),
                 OffsetDateTime.parse("2027-12-31T23:59:59+00:00")
         );

@@ -92,6 +92,26 @@ public class BranchDaoTest {
     }
 
     @Test
+    public void findByIdDetailed_shouldLoadAccountsAndLinkedEntities() {
+        Optional<Branch> result = branchDao.findByIdDetailed(1L);
+
+        assertTrue(result.isPresent());
+        Branch branch = result.get();
+
+        assertEquals(branch.getName(), "Central Branch");
+        assertEquals(branch.getAccounts().size(), 4);
+        assertTrue(branch.getAccounts().stream().allMatch(a -> a.getClient() != null));
+        assertTrue(branch.getAccounts().stream().allMatch(a -> a.getAccountType() != null));
+    }
+
+    @Test
+    public void findByIdDetailed_shouldReturnEmpty_whenBranchDoesNotExist() {
+        Optional<Branch> result = branchDao.findByIdDetailed(999L);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
     public void findBranchesWithOpenAccounts_shouldReturnAllBranchesThatHaveOpenAccounts() {
         List<Branch> branches = branchDao.findBranchesWithOpenAccounts();
 
@@ -116,5 +136,30 @@ public class BranchDaoTest {
         assertTrue(loaded.isPresent());
         assertEquals(loaded.get().getName(), "West Branch");
         assertEquals(loaded.get().getAddress(), "Moscow, West street, 10");
+    }
+
+    @Test
+    public void deleteById_shouldDeleteExistingBranch() {
+        Branch transientBranch = new Branch(
+                "Temp Removable Branch",
+                "Moscow, Temporary st, 99"
+        );
+        Branch persisted = branchDao.save(transientBranch);
+
+        Optional<Branch> before = branchDao.findById(persisted.getId());
+        assertTrue(before.isPresent());
+
+        branchDao.deleteById(persisted.getId());
+
+        Optional<Branch> after = branchDao.findById(persisted.getId());
+        assertTrue(after.isEmpty());
+    }
+
+    @Test
+    public void deleteById_shouldDoNothing_whenBranchMissing() {
+        branchDao.deleteById(999L);
+
+        List<Branch> branches = branchDao.findAll();
+        assertEquals(branches.size(), 3);
     }
 }

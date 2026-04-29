@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BranchController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.web.controller</a> &gt; <span class="el_source">BranchController.java</span></div><h1>BranchController.java</h1><pre class="source lang-java linenums">package bankinfo.web.controller;
+
+import bankinfo.model.Branch;
+import bankinfo.web.form.BranchForm;
+import bankinfo.web.service.BranchService;
+import bankinfo.web.service.ValidationException;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
+
+@Controller
+@RequestMapping(&quot;/branches&quot;)
+public class BranchController {
+
+    private final BranchService branchService;
+
+<span class="fc" id="L25">    public BranchController(BranchService branchService) {</span>
+<span class="fc" id="L26">        this.branchService = branchService;</span>
+<span class="fc" id="L27">    }</span>
+
+    @GetMapping
+    public String listBranches(@RequestParam(value = &quot;q&quot;, required = false) String query, Model model) {
+<span class="fc" id="L31">        List&lt;Branch&gt; branches = branchService.findBranches(query);</span>
+<span class="fc" id="L32">        model.addAttribute(&quot;branches&quot;, branches);</span>
+<span class="fc bfc" id="L33" title="All 2 branches covered.">        model.addAttribute(&quot;query&quot;, query == null ? &quot;&quot; : query);</span>
+<span class="fc" id="L34">        return &quot;p2-branches&quot;;</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public String branchCard(@PathVariable(&quot;id&quot;) Long branchId, Model model) {
+<span class="fc" id="L39">        Branch branch = branchService.findBranchDetails(branchId)</span>
+<span class="fc" id="L40">                .orElseThrow(() -&gt; new ValidationException(&quot;Branch not found: &quot; + branchId));</span>
+<span class="fc" id="L41">        model.addAttribute(&quot;branch&quot;, branch);</span>
+<span class="fc" id="L42">        return &quot;p3-branch&quot;;</span>
+    }
+
+    @GetMapping(&quot;/form&quot;)
+    public String createBranchForm(Model model) {
+<span class="fc" id="L47">        model.addAttribute(&quot;form&quot;, new BranchForm());</span>
+<span class="fc" id="L48">        return &quot;p4-branch-form&quot;;</span>
+    }
+
+    @GetMapping(&quot;/{id}/edit&quot;)
+    public String editBranchForm(@PathVariable(&quot;id&quot;) Long branchId, Model model) {
+<span class="fc" id="L53">        Branch branch = branchService.findBranchDetails(branchId)</span>
+<span class="fc" id="L54">                .orElseThrow(() -&gt; new ValidationException(&quot;Branch not found: &quot; + branchId));</span>
+<span class="fc" id="L55">        BranchForm form = new BranchForm();</span>
+<span class="fc" id="L56">        form.setId(branch.getId());</span>
+<span class="fc" id="L57">        form.setName(branch.getName());</span>
+<span class="fc" id="L58">        form.setAddress(branch.getAddress());</span>
+<span class="fc" id="L59">        model.addAttribute(&quot;form&quot;, form);</span>
+<span class="fc" id="L60">        return &quot;p4-branch-form&quot;;</span>
+    }
+
+    @PostMapping(&quot;/save&quot;)
+    public String saveBranch(
+            @ModelAttribute(&quot;form&quot;) BranchForm form,
+            RedirectAttributes redirectAttributes,
+            Model model
+    ) {
+        try {
+<span class="fc" id="L70">            Branch saved = branchService.saveBranch(form.getId(), form.getName(), form.getAddress());</span>
+<span class="fc" id="L71">            redirectAttributes.addFlashAttribute(&quot;message&quot;, &quot;Branch saved&quot;);</span>
+<span class="fc" id="L72">            return &quot;redirect:/branches/&quot; + saved.getId();</span>
+<span class="fc" id="L73">        } catch (ValidationException exception) {</span>
+<span class="fc" id="L74">            model.addAttribute(&quot;form&quot;, form);</span>
+<span class="fc" id="L75">            model.addAttribute(&quot;errorMessage&quot;, exception.getMessage());</span>
+<span class="fc" id="L76">            return &quot;p4-branch-form&quot;;</span>
+        }
+    }
+
+    @PostMapping(&quot;/{id}/delete&quot;)
+    public String deleteBranch(
+            @PathVariable(&quot;id&quot;) Long branchId,
+            RedirectAttributes redirectAttributes,
+            Model model
+    ) {
+        try {
+<span class="fc" id="L87">            branchService.deleteBranch(branchId);</span>
+<span class="fc" id="L88">            redirectAttributes.addFlashAttribute(&quot;message&quot;, &quot;Branch deleted&quot;);</span>
+<span class="fc" id="L89">            return &quot;redirect:/branches&quot;;</span>
+<span class="fc" id="L90">        } catch (ValidationException exception) {</span>
+<span class="fc" id="L91">            Branch branch = branchService.findBranchDetails(branchId)</span>
+<span class="fc" id="L92">                    .orElseThrow(() -&gt; exception);</span>
+<span class="fc" id="L93">            model.addAttribute(&quot;branch&quot;, branch);</span>
+<span class="fc" id="L94">            model.addAttribute(&quot;errorMessage&quot;, exception.getMessage());</span>
+<span class="fc" id="L95">            return &quot;p3-branch&quot;;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientDao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.dao</a> &gt; <span class="el_source">ClientDao.java</span></div><h1>ClientDao.java</h1><pre class="source lang-java linenums">package bankinfo.dao;
+
+import bankinfo.model.Client;
+import bankinfo.model.ClientType;
+import bankinfo.util.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+<span class="fc" id="L14">public class ClientDao {</span>
+
+    public List&lt;Client&gt; findAll() {
+<span class="fc" id="L17">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L18">            return session.createQuery(</span>
+                    &quot;select c from Client c order by c.id&quot;,
+                    Client.class
+<span class="fc" id="L21">            ).list();</span>
+<span class="nc" id="L22">        } catch (Exception e) {</span>
+<span class="nc" id="L23">            throw new DaoException(&quot;Failed to load all clients&quot;, e);</span>
+        }
+    }
+
+    public Optional&lt;Client&gt; findById(Long id) {
+<span class="fc" id="L28">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L29">            Client client = session.get(Client.class, id);</span>
+<span class="fc" id="L30">            return Optional.ofNullable(client);</span>
+<span class="nc" id="L31">        } catch (Exception e) {</span>
+<span class="nc" id="L32">            throw new DaoException(&quot;Failed to load client by id=&quot; + id, e);</span>
+        }
+    }
+
+    public Optional&lt;Client&gt; findByIdWithAddresses(Long id) {
+<span class="nc" id="L37">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L38">            List&lt;Client&gt; result = session.createQuery(</span>
+                    &quot;select distinct c from Client c &quot; +
+                    &quot;left join fetch c.addresses &quot; +
+                    &quot;where c.id = :id&quot;,
+                    Client.class
+<span class="nc" id="L43">            ).setParameter(&quot;id&quot;, id).list();</span>
+
+<span class="nc bnc" id="L45" title="All 2 branches missed.">            if (result.isEmpty()) {</span>
+<span class="nc" id="L46">                return Optional.empty();</span>
+            }
+
+<span class="nc" id="L49">            return Optional.of(result.get(0));</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        } catch (Exception e) {</span>
+<span class="nc" id="L51">            throw new DaoException(&quot;Failed to load client with addresses by id=&quot; + id, e);</span>
+        }
+    }
+
+    public Optional&lt;Client&gt; findByIdWithContacts(Long id) {
+<span class="nc" id="L56">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L57">            Client client = session.get(Client.class, id);</span>
+
+<span class="nc bnc" id="L59" title="All 2 branches missed.">            if (client == null) {</span>
+<span class="nc" id="L60">                return Optional.empty();</span>
+            }
+
+<span class="nc" id="L63">            client.getPhones().size();</span>
+<span class="nc" id="L64">            client.getEmails().size();</span>
+<span class="nc" id="L65">            client.getContactPersons().size();</span>
+
+<span class="nc" id="L67">            return Optional.of(client);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        } catch (Exception e) {</span>
+<span class="nc" id="L69">            throw new DaoException(&quot;Failed to load client with contacts by id=&quot; + id, e);</span>
+        }
+    }
+
+    public Optional&lt;Client&gt; findByIdDetailed(Long id) {
+<span class="fc" id="L74">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L75">            Client client = session.get(Client.class, id);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">            if (client == null) {</span>
+<span class="fc" id="L77">                return Optional.empty();</span>
+            }
+
+<span class="fc" id="L80">            client.getAddresses().size();</span>
+<span class="fc" id="L81">            client.getPhones().size();</span>
+<span class="fc" id="L82">            client.getEmails().size();</span>
+<span class="fc" id="L83">            client.getContactPersons().size();</span>
+
+<span class="fc" id="L85">            return Optional.of(client);</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        } catch (Exception e) {</span>
+<span class="nc" id="L87">            throw new DaoException(&quot;Failed to load detailed client by id=&quot; + id, e);</span>
+        }
+    }
+
+    public List&lt;Client&gt; findByType(ClientType clientType) {
+<span class="fc" id="L92">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L93">            return session.createQuery(</span>
+                    &quot;select c from Client c &quot; +
+                    &quot;where c.clientType = :clientType &quot; +
+                    &quot;order by c.id&quot;,
+                    Client.class
+<span class="fc" id="L98">            ).setParameter(&quot;clientType&quot;, clientType).list();</span>
+<span class="nc" id="L99">        } catch (Exception e) {</span>
+<span class="nc" id="L100">            throw new DaoException(&quot;Failed to load clients by type=&quot; + clientType, e);</span>
+        }
+    }
+
+    public List&lt;Client&gt; findByDisplayNameContains(String text) {
+<span class="fc" id="L105">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L106">            return session.createQuery(</span>
+                    &quot;select c from Client c &quot; +
+                    &quot;where lower(c.displayName) like :pattern &quot; +
+                    &quot;order by c.id&quot;,
+                    Client.class
+<span class="fc" id="L111">            ).setParameter(&quot;pattern&quot;, &quot;%&quot; + text.toLowerCase() + &quot;%&quot;)</span>
+<span class="fc" id="L112">             .list();</span>
+<span class="nc" id="L113">        } catch (Exception e) {</span>
+<span class="nc" id="L114">            throw new DaoException(&quot;Failed to search clients by display name&quot;, e);</span>
+        }
+    }
+
+    public List&lt;Client&gt; findOrganizationsWithContactPersons() {
+<span class="nc" id="L119">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L120">            return session.createQuery(</span>
+                    &quot;select distinct c from Client c &quot; +
+                    &quot;join fetch c.contactPersons cp &quot; +
+                    &quot;where c.clientType = :clientType &quot; +
+                    &quot;order by c.id&quot;,
+                    Client.class
+<span class="nc" id="L126">            ).setParameter(&quot;clientType&quot;, ClientType.ORG)</span>
+<span class="nc" id="L127">             .list();</span>
+<span class="nc" id="L128">        } catch (Exception e) {</span>
+<span class="nc" id="L129">            throw new DaoException(&quot;Failed to load organizations with contact persons&quot;, e);</span>
+        }
+    }
+
+    public Client save(Client client) {
+<span class="fc" id="L134">        Transaction tx = null;</span>
+
+<span class="fc" id="L136">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L137">            tx = session.beginTransaction();</span>
+<span class="fc" id="L138">            session.saveOrUpdate(client);</span>
+<span class="fc" id="L139">            tx.commit();</span>
+<span class="fc" id="L140">            return client;</span>
+<span class="nc" id="L141">        } catch (Exception e) {</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">            if (tx != null) {</span>
+<span class="nc" id="L143">                tx.rollback();</span>
+            }
+<span class="nc" id="L145">            throw new DaoException(&quot;Failed to save client&quot;, e);</span>
+        }
+    }
+
+    public void deleteById(Long id) {
+<span class="fc" id="L150">        Transaction tx = null;</span>
+
+<span class="fc" id="L152">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L153">            tx = session.beginTransaction();</span>
+<span class="fc" id="L154">            Client client = session.get(Client.class, id);</span>
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">            if (client != null) {</span>
+<span class="fc" id="L156">                session.delete(client);</span>
+            }
+<span class="fc" id="L158">            tx.commit();</span>
+<span class="nc" id="L159">        } catch (Exception e) {</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">            if (tx != null) {</span>
+<span class="nc" id="L161">                tx.rollback();</span>
+            }
+<span class="nc" id="L163">            throw new DaoException(&quot;Failed to delete client by id=&quot; + id, e);</span>
+<span class="fc" id="L164">        }</span>
+<span class="fc" id="L165">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

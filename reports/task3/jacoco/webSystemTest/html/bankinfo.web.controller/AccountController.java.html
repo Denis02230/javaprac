@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AccountController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.web.controller</a> &gt; <span class="el_source">AccountController.java</span></div><h1>AccountController.java</h1><pre class="source lang-java linenums">package bankinfo.web.controller;
+
+import bankinfo.model.Account;
+import bankinfo.model.AccountStatus;
+import bankinfo.model.AccountTx;
+import bankinfo.model.TxType;
+import bankinfo.web.form.AccountOperationForm;
+import bankinfo.web.form.OpenAccountForm;
+import bankinfo.web.service.AccountService;
+import bankinfo.web.service.AccountTypeService;
+import bankinfo.web.service.BranchService;
+import bankinfo.web.service.ClientService;
+import bankinfo.web.service.ValidationException;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+
+@Controller
+@RequestMapping(&quot;/accounts&quot;)
+public class AccountController {
+
+    private final AccountService accountService;
+    private final ClientService clientService;
+    private final BranchService branchService;
+    private final AccountTypeService accountTypeService;
+
+    public AccountController(
+            AccountService accountService,
+            ClientService clientService,
+            BranchService branchService,
+            AccountTypeService accountTypeService
+<span class="fc" id="L42">    ) {</span>
+<span class="fc" id="L43">        this.accountService = accountService;</span>
+<span class="fc" id="L44">        this.clientService = clientService;</span>
+<span class="fc" id="L45">        this.branchService = branchService;</span>
+<span class="fc" id="L46">        this.accountTypeService = accountTypeService;</span>
+<span class="fc" id="L47">    }</span>
+
+    @GetMapping
+    public String listAccounts(
+            @RequestParam(value = &quot;status&quot;, required = false) AccountStatus status,
+            @RequestParam(value = &quot;clientId&quot;, required = false) Long clientId,
+            @RequestParam(value = &quot;branchId&quot;, required = false) Long branchId,
+            @RequestParam(value = &quot;accountTypeId&quot;, required = false) Long accountTypeId,
+            @RequestParam(value = &quot;q&quot;, required = false) String accountNumber,
+            Model model
+    ) {
+<span class="fc" id="L58">        List&lt;Account&gt; accounts = accountService.findAccounts(status, clientId, branchId, accountTypeId, accountNumber);</span>
+
+<span class="fc" id="L60">        model.addAttribute(&quot;accounts&quot;, accounts);</span>
+<span class="fc" id="L61">        model.addAttribute(&quot;allStatuses&quot;, AccountStatus.values());</span>
+<span class="fc" id="L62">        model.addAttribute(&quot;clients&quot;, clientService.findClients(null, null));</span>
+<span class="fc" id="L63">        model.addAttribute(&quot;branches&quot;, branchService.findBranches(null));</span>
+<span class="fc" id="L64">        model.addAttribute(&quot;accountTypes&quot;, accountTypeService.findAccountTypes(null));</span>
+<span class="fc" id="L65">        model.addAttribute(&quot;selectedStatus&quot;, status);</span>
+<span class="fc" id="L66">        model.addAttribute(&quot;selectedClientId&quot;, clientId);</span>
+<span class="fc" id="L67">        model.addAttribute(&quot;selectedBranchId&quot;, branchId);</span>
+<span class="fc" id="L68">        model.addAttribute(&quot;selectedAccountTypeId&quot;, accountTypeId);</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        model.addAttribute(&quot;query&quot;, accountNumber == null ? &quot;&quot; : accountNumber);</span>
+
+<span class="fc" id="L71">        return &quot;p8-accounts&quot;;</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public String accountCard(
+            @PathVariable(&quot;id&quot;) Long accountId,
+            @RequestParam(value = &quot;from&quot;, required = false) String from,
+            @RequestParam(value = &quot;to&quot;, required = false) String to,
+            Model model
+    ) {
+<span class="fc" id="L81">        Account account = accountService.findAccountDetailed(accountId)</span>
+<span class="fc" id="L82">                .orElseThrow(() -&gt; new ValidationException(&quot;Account not found: &quot; + accountId));</span>
+
+        List&lt;AccountTx&gt; transactions;
+        try {
+<span class="fc" id="L86">            OffsetDateTime fromTime = parseDateTime(from);</span>
+<span class="fc" id="L87">            OffsetDateTime toTime = parseDateTime(to);</span>
+<span class="pc bpc" id="L88" title="1 of 6 branches missed.">            if (fromTime != null &amp;&amp; toTime != null &amp;&amp; fromTime.isAfter(toTime)) {</span>
+<span class="fc" id="L89">                throw new ValidationException(&quot;Period start must be before or equal to period end&quot;);</span>
+            }
+<span class="fc" id="L91">            transactions = accountService.findTransactions(accountId, fromTime, toTime);</span>
+<span class="fc" id="L92">        } catch (ValidationException exception) {</span>
+<span class="fc" id="L93">            transactions = accountService.findTransactions(accountId, null, null);</span>
+<span class="fc" id="L94">            model.addAttribute(&quot;errorMessage&quot;, exception.getMessage());</span>
+<span class="fc" id="L95">        }</span>
+
+<span class="fc" id="L97">        model.addAttribute(&quot;account&quot;, account);</span>
+<span class="fc" id="L98">        model.addAttribute(&quot;transactions&quot;, transactions);</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        model.addAttribute(&quot;from&quot;, from == null ? &quot;&quot; : from);</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        model.addAttribute(&quot;to&quot;, to == null ? &quot;&quot; : to);</span>
+
+<span class="fc" id="L102">        return &quot;p9-account&quot;;</span>
+    }
+
+    @GetMapping(&quot;/open&quot;)
+    public String openAccountForm(Model model) {
+<span class="fc" id="L107">        prepareOpenAccountViewModel(model);</span>
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">        if (!model.containsAttribute(&quot;form&quot;)) {</span>
+<span class="fc" id="L109">            model.addAttribute(&quot;form&quot;, new OpenAccountForm());</span>
+        }
+<span class="fc" id="L111">        return &quot;p10-open-account&quot;;</span>
+    }
+
+    @PostMapping(&quot;/open&quot;)
+    public String openAccount(
+            @ModelAttribute(&quot;form&quot;) OpenAccountForm form,
+            RedirectAttributes redirectAttributes,
+            Model model
+    ) {
+        try {
+<span class="fc" id="L121">            Account account = accountService.openAccount(form.getClientId(), form.getBranchId(), form.getAccountTypeId());</span>
+<span class="fc" id="L122">            redirectAttributes.addFlashAttribute(&quot;message&quot;, &quot;Account opened&quot;);</span>
+<span class="fc" id="L123">            return &quot;redirect:/accounts/&quot; + account.getId();</span>
+<span class="fc" id="L124">        } catch (ValidationException exception) {</span>
+<span class="fc" id="L125">            model.addAttribute(&quot;form&quot;, form);</span>
+<span class="fc" id="L126">            model.addAttribute(&quot;errorMessage&quot;, exception.getMessage());</span>
+<span class="fc" id="L127">            prepareOpenAccountViewModel(model);</span>
+<span class="fc" id="L128">            return &quot;p10-open-account&quot;;</span>
+        }
+    }
+
+    @GetMapping(&quot;/{id}/close&quot;)
+    public String closeAccountForm(@PathVariable(&quot;id&quot;) Long accountId, Model model) {
+<span class="fc" id="L134">        Account account = accountService.findAccountDetailed(accountId)</span>
+<span class="fc" id="L135">                .orElseThrow(() -&gt; new ValidationException(&quot;Account not found: &quot; + accountId));</span>
+<span class="fc" id="L136">        model.addAttribute(&quot;account&quot;, account);</span>
+<span class="fc" id="L137">        return &quot;p11-close-account&quot;;</span>
+    }
+
+    @PostMapping(&quot;/{id}/close&quot;)
+    public String closeAccount(@PathVariable(&quot;id&quot;) Long accountId, RedirectAttributes redirectAttributes, Model model) {
+        try {
+<span class="fc" id="L143">            Account account = accountService.closeAccount(accountId);</span>
+<span class="fc" id="L144">            redirectAttributes.addFlashAttribute(&quot;message&quot;, &quot;Account closed&quot;);</span>
+<span class="fc" id="L145">            return &quot;redirect:/accounts/&quot; + account.getId();</span>
+<span class="fc" id="L146">        } catch (ValidationException exception) {</span>
+<span class="fc" id="L147">            Account account = accountService.findAccountDetailed(accountId)</span>
+<span class="fc" id="L148">                    .orElseThrow(() -&gt; exception);</span>
+<span class="fc" id="L149">            model.addAttribute(&quot;account&quot;, account);</span>
+<span class="fc" id="L150">            model.addAttribute(&quot;errorMessage&quot;, exception.getMessage());</span>
+<span class="fc" id="L151">            return &quot;p11-close-account&quot;;</span>
+        }
+    }
+
+    @GetMapping(&quot;/{id}/tx&quot;)
+    public String accountTxForm(
+            @PathVariable(&quot;id&quot;) Long accountId,
+            @RequestParam(value = &quot;type&quot;, required = false) TxType txType,
+            Model model
+    ) {
+<span class="fc" id="L161">        Account account = accountService.findAccountDetailed(accountId)</span>
+<span class="fc" id="L162">                .orElseThrow(() -&gt; new ValidationException(&quot;Account not found: &quot; + accountId));</span>
+
+<span class="fc" id="L164">        AccountOperationForm form = new AccountOperationForm();</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        form.setTxType(txType == null ? TxType.CREDIT : txType);</span>
+<span class="fc" id="L166">        model.addAttribute(&quot;account&quot;, account);</span>
+<span class="fc" id="L167">        model.addAttribute(&quot;form&quot;, form);</span>
+<span class="fc" id="L168">        model.addAttribute(&quot;allTypes&quot;, new TxType[]{TxType.CREDIT, TxType.DEBIT});</span>
+<span class="fc" id="L169">        return &quot;p12-account-operation&quot;;</span>
+    }
+
+    @PostMapping(&quot;/{id}/tx&quot;)
+    public String createTx(
+            @PathVariable(&quot;id&quot;) Long accountId,
+            @ModelAttribute(&quot;form&quot;) AccountOperationForm form,
+            RedirectAttributes redirectAttributes,
+            Model model
+    ) {
+        try {
+<span class="fc" id="L180">            accountService.postTransaction(accountId, form.getTxType(), form.getAmount(), form.getDescription());</span>
+<span class="fc" id="L181">            redirectAttributes.addFlashAttribute(&quot;message&quot;, &quot;Transaction posted&quot;);</span>
+<span class="fc" id="L182">            return &quot;redirect:/accounts/&quot; + accountId;</span>
+<span class="fc" id="L183">        } catch (ValidationException exception) {</span>
+<span class="fc" id="L184">            Account account = accountService.findAccountDetailed(accountId)</span>
+<span class="fc" id="L185">                    .orElseThrow(() -&gt; exception);</span>
+<span class="fc" id="L186">            model.addAttribute(&quot;account&quot;, account);</span>
+<span class="fc" id="L187">            model.addAttribute(&quot;form&quot;, form);</span>
+<span class="fc" id="L188">            model.addAttribute(&quot;allTypes&quot;, new TxType[]{TxType.CREDIT, TxType.DEBIT});</span>
+<span class="fc" id="L189">            model.addAttribute(&quot;errorMessage&quot;, exception.getMessage());</span>
+<span class="fc" id="L190">            return &quot;p12-account-operation&quot;;</span>
+        }
+    }
+
+    private OffsetDateTime parseDateTime(String raw) {
+<span class="pc bpc" id="L195" title="1 of 4 branches missed.">        if (raw == null || raw.isBlank()) {</span>
+<span class="fc" id="L196">            return null;</span>
+        }
+        try {
+<span class="fc" id="L199">            return OffsetDateTime.parse(raw.trim());</span>
+<span class="fc" id="L200">        } catch (DateTimeParseException exception) {</span>
+<span class="fc" id="L201">            throw new ValidationException(&quot;Invalid date-time format. Expected ISO offset date-time&quot;);</span>
+        }
+    }
+
+    private void prepareOpenAccountViewModel(Model model) {
+<span class="fc" id="L206">        model.addAttribute(&quot;clients&quot;, clientService.findClients(null, null));</span>
+<span class="fc" id="L207">        model.addAttribute(&quot;branches&quot;, branchService.findBranches(null));</span>
+<span class="fc" id="L208">        model.addAttribute(&quot;accountTypes&quot;, accountTypeService.findAccountTypes(null));</span>
+<span class="fc" id="L209">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

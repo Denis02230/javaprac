@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AccountTxDao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.dao</a> &gt; <span class="el_source">AccountTxDao.java</span></div><h1>AccountTxDao.java</h1><pre class="source lang-java linenums">package bankinfo.dao;
+
+import bankinfo.model.AccountTx;
+import bankinfo.model.TxType;
+import bankinfo.util.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+<span class="fc" id="L16">public class AccountTxDao {</span>
+
+    public List&lt;AccountTx&gt; findAll() {
+<span class="nc" id="L19">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L20">            return session.createQuery(</span>
+                    &quot;select t from AccountTx t order by t.id&quot;,
+                    AccountTx.class
+<span class="nc" id="L23">            ).list();</span>
+<span class="nc" id="L24">        } catch (Exception e) {</span>
+<span class="nc" id="L25">            throw new DaoException(&quot;Failed to load all account transactions&quot;, e);</span>
+        }
+    }
+
+    public List&lt;AccountTx&gt; findAllDetailed() {
+<span class="fc" id="L30">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L31">            return session.createQuery(</span>
+                    &quot;select t from AccountTx t &quot; +
+                    &quot;join fetch t.account a &quot; +
+                    &quot;join fetch a.client &quot; +
+                    &quot;join fetch a.branch &quot; +
+                    &quot;join fetch a.accountType &quot; +
+                    &quot;order by t.txTime, t.id&quot;,
+                    AccountTx.class
+<span class="fc" id="L39">            ).list();</span>
+<span class="nc" id="L40">        } catch (Exception e) {</span>
+<span class="nc" id="L41">            throw new DaoException(&quot;Failed to load all detailed account transactions&quot;, e);</span>
+        }
+    }
+
+    public Optional&lt;AccountTx&gt; findById(Long id) {
+<span class="nc" id="L46">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L47">            return Optional.ofNullable(session.get(AccountTx.class, id));</span>
+<span class="nc" id="L48">        } catch (Exception e) {</span>
+<span class="nc" id="L49">            throw new DaoException(&quot;Failed to load transaction by id=&quot; + id, e);</span>
+        }
+    }
+
+    public Optional&lt;AccountTx&gt; findByIdDetailed(Long id) {
+<span class="nc" id="L54">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L55">            List&lt;AccountTx&gt; result = session.createQuery(</span>
+                    &quot;select t from AccountTx t &quot; +
+                    &quot;join fetch t.account a &quot; +
+                    &quot;join fetch a.client &quot; +
+                    &quot;join fetch a.branch &quot; +
+                    &quot;join fetch a.accountType &quot; +
+                    &quot;where t.id = :id&quot;,
+                    AccountTx.class
+<span class="nc" id="L63">            ).setParameter(&quot;id&quot;, id).list();</span>
+
+<span class="nc bnc" id="L65" title="All 2 branches missed.">            return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));</span>
+<span class="nc" id="L66">        } catch (Exception e) {</span>
+<span class="nc" id="L67">            throw new DaoException(&quot;Failed to load detailed transaction by id=&quot; + id, e);</span>
+        }
+    }
+
+    public List&lt;AccountTx&gt; findByAccountId(Long accountId) {
+<span class="fc" id="L72">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L73">            return session.createQuery(</span>
+                    &quot;select t from AccountTx t &quot; +
+                    &quot;join fetch t.account a &quot; +
+                    &quot;where a.id = :accountId &quot; +
+                    &quot;order by t.txTime, t.id&quot;,
+                    AccountTx.class
+<span class="fc" id="L79">            ).setParameter(&quot;accountId&quot;, accountId).list();</span>
+<span class="nc" id="L80">        } catch (Exception e) {</span>
+<span class="nc" id="L81">            throw new DaoException(&quot;Failed to load transactions by accountId=&quot; + accountId, e);</span>
+        }
+    }
+
+    public List&lt;AccountTx&gt; findByPeriodDetailed(OffsetDateTime fromInclusive, OffsetDateTime toInclusive) {
+<span class="fc" id="L86">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L87">            return session.createQuery(</span>
+                    &quot;select t from AccountTx t &quot; +
+                    &quot;join fetch t.account a &quot; +
+                    &quot;join fetch a.client &quot; +
+                    &quot;join fetch a.branch &quot; +
+                    &quot;join fetch a.accountType &quot; +
+                    &quot;where t.txTime &gt;= :fromTime and t.txTime &lt;= :toTime &quot; +
+                    &quot;order by t.txTime, t.id&quot;,
+                    AccountTx.class
+            )
+<span class="fc" id="L97">            .setParameter(&quot;fromTime&quot;, fromInclusive)</span>
+<span class="fc" id="L98">            .setParameter(&quot;toTime&quot;, toInclusive)</span>
+<span class="fc" id="L99">            .list();</span>
+<span class="nc" id="L100">        } catch (Exception e) {</span>
+<span class="nc" id="L101">            throw new DaoException(&quot;Failed to load detailed transactions by period&quot;, e);</span>
+        }
+    }
+
+    public List&lt;AccountTx&gt; findByType(TxType txType) {
+<span class="nc" id="L106">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L107">            return session.createQuery(</span>
+                    &quot;select t from AccountTx t &quot; +
+                    &quot;where t.txType = :txType &quot; +
+                    &quot;order by t.id&quot;,
+                    AccountTx.class
+<span class="nc" id="L112">            ).setParameter(&quot;txType&quot;, txType).list();</span>
+<span class="nc" id="L113">        } catch (Exception e) {</span>
+<span class="nc" id="L114">            throw new DaoException(&quot;Failed to load transactions by type=&quot; + txType, e);</span>
+        }
+    }
+
+    public List&lt;AccountTx&gt; findByAccountIdAndType(Long accountId, TxType txType) {
+<span class="nc" id="L119">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L120">            return session.createQuery(</span>
+                    &quot;select t from AccountTx t &quot; +
+                    &quot;join fetch t.account a &quot; +
+                    &quot;where a.id = :accountId and t.txType = :txType &quot; +
+                    &quot;order by t.txTime, t.id&quot;,
+                    AccountTx.class
+            )
+<span class="nc" id="L127">            .setParameter(&quot;accountId&quot;, accountId)</span>
+<span class="nc" id="L128">            .setParameter(&quot;txType&quot;, txType)</span>
+<span class="nc" id="L129">            .list();</span>
+<span class="nc" id="L130">        } catch (Exception e) {</span>
+<span class="nc" id="L131">            throw new DaoException(&quot;Failed to load transactions by accountId and type&quot;, e);</span>
+        }
+    }
+
+    public List&lt;AccountTx&gt; findByPeriod(OffsetDateTime fromInclusive, OffsetDateTime toInclusive) {
+<span class="nc" id="L136">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L137">            return session.createQuery(</span>
+                    &quot;select t from AccountTx t &quot; +
+                    &quot;where t.txTime &gt;= :fromTime and t.txTime &lt;= :toTime &quot; +
+                    &quot;order by t.txTime, t.id&quot;,
+                    AccountTx.class
+            )
+<span class="nc" id="L143">            .setParameter(&quot;fromTime&quot;, fromInclusive)</span>
+<span class="nc" id="L144">            .setParameter(&quot;toTime&quot;, toInclusive)</span>
+<span class="nc" id="L145">            .list();</span>
+<span class="nc" id="L146">        } catch (Exception e) {</span>
+<span class="nc" id="L147">            throw new DaoException(&quot;Failed to load transactions by period&quot;, e);</span>
+        }
+    }
+
+    public List&lt;AccountTx&gt; findWithAmountGreaterThan(BigDecimal amount) {
+<span class="nc" id="L152">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L153">            return session.createQuery(</span>
+                    &quot;select t from AccountTx t &quot; +
+                    &quot;where t.amount &gt; :amount &quot; +
+                    &quot;order by t.id&quot;,
+                    AccountTx.class
+<span class="nc" id="L158">            ).setParameter(&quot;amount&quot;, amount).list();</span>
+<span class="nc" id="L159">        } catch (Exception e) {</span>
+<span class="nc" id="L160">            throw new DaoException(&quot;Failed to load transactions by amount threshold&quot;, e);</span>
+        }
+    }
+
+    public AccountTx save(AccountTx txObject) {
+<span class="fc" id="L165">        Transaction tx = null;</span>
+
+<span class="fc" id="L167">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L168">            tx = session.beginTransaction();</span>
+<span class="fc" id="L169">            session.saveOrUpdate(txObject);</span>
+<span class="fc" id="L170">            tx.commit();</span>
+<span class="fc" id="L171">            return txObject;</span>
+<span class="nc" id="L172">        } catch (Exception e) {</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">            if (tx != null) {</span>
+<span class="nc" id="L174">                tx.rollback();</span>
+            }
+<span class="nc" id="L176">            throw new DaoException(&quot;Failed to save transaction&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

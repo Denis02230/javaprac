@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AccountTypeDao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.dao</a> &gt; <span class="el_source">AccountTypeDao.java</span></div><h1>AccountTypeDao.java</h1><pre class="source lang-java linenums">package bankinfo.dao;
+
+import bankinfo.model.AccountType;
+import bankinfo.util.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+<span class="fc" id="L14">public class AccountTypeDao {</span>
+
+    public List&lt;AccountType&gt; findAll() {
+<span class="fc" id="L17">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L18">            return session.createQuery(</span>
+                    &quot;select at from AccountType at order by at.id&quot;,
+                    AccountType.class
+<span class="fc" id="L21">            ).list();</span>
+<span class="nc" id="L22">        } catch (Exception e) {</span>
+<span class="nc" id="L23">            throw new DaoException(&quot;Failed to load all account types&quot;, e);</span>
+        }
+    }
+
+    public Optional&lt;AccountType&gt; findById(Long id) {
+<span class="fc" id="L28">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L29">            AccountType accountType = session.get(AccountType.class, id);</span>
+<span class="fc" id="L30">            return Optional.ofNullable(accountType);</span>
+<span class="nc" id="L31">        } catch (Exception e) {</span>
+<span class="nc" id="L32">            throw new DaoException(&quot;Failed to load account type by id=&quot; + id, e);</span>
+        }
+    }
+
+    public List&lt;AccountType&gt; findByNameContains(String text) {
+<span class="fc" id="L37">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L38">            return session.createQuery(</span>
+                    &quot;select at from AccountType at &quot; +
+                    &quot;where lower(at.name) like :pattern &quot; +
+                    &quot;order by at.id&quot;,
+                    AccountType.class
+<span class="fc" id="L43">            ).setParameter(&quot;pattern&quot;, &quot;%&quot; + text.toLowerCase() + &quot;%&quot;)</span>
+<span class="fc" id="L44">             .list();</span>
+<span class="nc" id="L45">        } catch (Exception e) {</span>
+<span class="nc" id="L46">            throw new DaoException(&quot;Failed to search account types by name&quot;, e);</span>
+        }
+    }
+
+    public List&lt;AccountType&gt; findDebitAllowed() {
+<span class="nc" id="L51">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L52">            return session.createQuery(</span>
+                    &quot;select at from AccountType at &quot; +
+                    &quot;where at.allowDebit = true &quot; +
+                    &quot;order by at.id&quot;,
+                    AccountType.class
+<span class="nc" id="L57">            ).list();</span>
+<span class="nc" id="L58">        } catch (Exception e) {</span>
+<span class="nc" id="L59">            throw new DaoException(&quot;Failed to load debit-allowed account types&quot;, e);</span>
+        }
+    }
+
+    public List&lt;AccountType&gt; findCreditAllowed() {
+<span class="nc" id="L64">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L65">            return session.createQuery(</span>
+                    &quot;select at from AccountType at &quot; +
+                    &quot;where at.allowCredit = true &quot; +
+                    &quot;order by at.id&quot;,
+                    AccountType.class
+<span class="nc" id="L70">            ).list();</span>
+<span class="nc" id="L71">        } catch (Exception e) {</span>
+<span class="nc" id="L72">            throw new DaoException(&quot;Failed to load credit-allowed account types&quot;, e);</span>
+        }
+    }
+
+    public List&lt;AccountType&gt; findWithInterestRateGreaterThan(BigDecimal value) {
+<span class="nc" id="L77">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L78">            return session.createQuery(</span>
+                    &quot;select at from AccountType at &quot; +
+                    &quot;where at.interestRate &gt; :value &quot; +
+                    &quot;order by at.id&quot;,
+                    AccountType.class
+<span class="nc" id="L83">            ).setParameter(&quot;value&quot;, value)</span>
+<span class="nc" id="L84">             .list();</span>
+<span class="nc" id="L85">        } catch (Exception e) {</span>
+<span class="nc" id="L86">            throw new DaoException(&quot;Failed to load account types by interest rate&quot;, e);</span>
+        }
+    }
+
+    public AccountType save(AccountType accountType) {
+<span class="fc" id="L91">        Transaction tx = null;</span>
+
+<span class="fc" id="L93">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="fc" id="L94">            tx = session.beginTransaction();</span>
+<span class="fc" id="L95">            session.saveOrUpdate(accountType);</span>
+<span class="fc" id="L96">            tx.commit();</span>
+<span class="fc" id="L97">            return accountType;</span>
+<span class="nc" id="L98">        } catch (Exception e) {</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">            if (tx != null) {</span>
+<span class="nc" id="L100">                tx.rollback();</span>
+            }
+<span class="nc" id="L102">            throw new DaoException(&quot;Failed to save account type&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

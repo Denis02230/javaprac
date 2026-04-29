@@ -107,6 +107,26 @@ public class ClientDaoTest {
     }
 
     @Test
+    public void findByIdDetailed_shouldLoadAllCollections() {
+        Optional<Client> result = clientDao.findByIdDetailed(4L);
+
+        assertTrue(result.isPresent());
+        Client client = result.get();
+        assertEquals(client.getDisplayName(), "Alpha LLC");
+        assertEquals(client.getAddresses().size(), 2);
+        assertEquals(client.getPhones().size(), 1);
+        assertEquals(client.getEmails().size(), 2);
+        assertEquals(client.getContactPersons().size(), 2);
+    }
+
+    @Test
+    public void findByIdDetailed_shouldReturnEmpty_whenClientMissing() {
+        Optional<Client> result = clientDao.findByIdDetailed(999L);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
     public void findByType_shouldReturnOnlyPersons() {
         List<Client> clients = clientDao.findByType(ClientType.PERSON);
 
@@ -236,5 +256,31 @@ public class ClientDaoTest {
 
         assertEquals(clients.size(), 3);
         assertFalse(clients.stream().anyMatch(c -> c.getDisplayName().equals("Org Without Contacts")));
+    }
+
+    @Test
+    public void deleteById_shouldDeleteExistingClient() {
+        Client transientClient = new Client(
+                ClientType.PERSON,
+                "To Be Deleted",
+                OffsetDateTime.parse("2026-03-06T10:00:00+03:00")
+        );
+        Client persisted = clientDao.save(transientClient);
+
+        Optional<Client> before = clientDao.findById(persisted.getId());
+        assertTrue(before.isPresent());
+
+        clientDao.deleteById(persisted.getId());
+
+        Optional<Client> after = clientDao.findById(persisted.getId());
+        assertTrue(after.isEmpty());
+    }
+
+    @Test
+    public void deleteById_shouldDoNothing_whenClientMissing() {
+        clientDao.deleteById(999L);
+
+        List<Client> clients = clientDao.findAll();
+        assertEquals(clients.size(), 6);
     }
 }

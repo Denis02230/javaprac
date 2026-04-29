@@ -35,6 +35,17 @@ public class AccountDaoTest {
     }
 
     @Test
+    public void findAllDetailed_shouldLoadLinkedEntitiesForEachAccount() {
+        List<Account> accounts = accountDao.findAllDetailed();
+
+        assertNotNull(accounts);
+        assertEquals(accounts.size(), 8);
+        assertTrue(accounts.stream().allMatch(a -> a.getClient() != null));
+        assertTrue(accounts.stream().allMatch(a -> a.getBranch() != null));
+        assertTrue(accounts.stream().allMatch(a -> a.getAccountType() != null));
+    }
+
+    @Test
     public void findById_shouldReturnAccount_whenExists() {
         Optional<Account> result = accountDao.findById(5L);
 
@@ -77,6 +88,30 @@ public class AccountDaoTest {
         assertEquals(account.getTransactions().get(0).getId(), Long.valueOf(1L));
         assertEquals(account.getTransactions().get(1).getId(), Long.valueOf(2L));
         assertEquals(account.getTransactions().get(2).getId(), Long.valueOf(3L));
+    }
+
+    @Test
+    public void findByIdDetailedWithTransactions_shouldLoadFullGraph() {
+        Optional<Account> result = accountDao.findByIdDetailedWithTransactions(1L);
+
+        assertTrue(result.isPresent());
+        Account account = result.get();
+
+        assertEquals(account.getAccountNumber(), "ACC-0001");
+        assertEquals(account.getClient().getDisplayName(), "Ivan Petrov");
+        assertEquals(account.getBranch().getName(), "Central Branch");
+        assertEquals(account.getAccountType().getName(), "Checking Standard");
+        assertEquals(account.getTransactions().size(), 3);
+        assertEquals(account.getTransactions().get(0).getId(), Long.valueOf(1L));
+        assertEquals(account.getTransactions().get(1).getId(), Long.valueOf(2L));
+        assertEquals(account.getTransactions().get(2).getId(), Long.valueOf(3L));
+    }
+
+    @Test
+    public void findByIdDetailedWithTransactions_shouldReturnEmpty_whenMissing() {
+        Optional<Account> result = accountDao.findByIdDetailedWithTransactions(999L);
+
+        assertTrue(result.isEmpty());
     }
 
     @Test

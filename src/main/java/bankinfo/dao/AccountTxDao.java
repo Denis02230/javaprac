@@ -5,12 +5,14 @@ import bankinfo.model.TxType;
 import bankinfo.util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class AccountTxDao {
 
     public List<AccountTx> findAll() {
@@ -21,6 +23,22 @@ public class AccountTxDao {
             ).list();
         } catch (Exception e) {
             throw new DaoException("Failed to load all account transactions", e);
+        }
+    }
+
+    public List<AccountTx> findAllDetailed() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery(
+                    "select t from AccountTx t " +
+                    "join fetch t.account a " +
+                    "join fetch a.client " +
+                    "join fetch a.branch " +
+                    "join fetch a.accountType " +
+                    "order by t.txTime, t.id",
+                    AccountTx.class
+            ).list();
+        } catch (Exception e) {
+            throw new DaoException("Failed to load all detailed account transactions", e);
         }
     }
 
@@ -61,6 +79,26 @@ public class AccountTxDao {
             ).setParameter("accountId", accountId).list();
         } catch (Exception e) {
             throw new DaoException("Failed to load transactions by accountId=" + accountId, e);
+        }
+    }
+
+    public List<AccountTx> findByPeriodDetailed(OffsetDateTime fromInclusive, OffsetDateTime toInclusive) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery(
+                    "select t from AccountTx t " +
+                    "join fetch t.account a " +
+                    "join fetch a.client " +
+                    "join fetch a.branch " +
+                    "join fetch a.accountType " +
+                    "where t.txTime >= :fromTime and t.txTime <= :toTime " +
+                    "order by t.txTime, t.id",
+                    AccountTx.class
+            )
+            .setParameter("fromTime", fromInclusive)
+            .setParameter("toTime", toInclusive)
+            .list();
+        } catch (Exception e) {
+            throw new DaoException("Failed to load detailed transactions by period", e);
         }
     }
 

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.web.controller</a> &gt; <span class="el_source">ClientController.java</span></div><h1>ClientController.java</h1><pre class="source lang-java linenums">package bankinfo.web.controller;
+
+import bankinfo.model.Account;
+import bankinfo.model.Client;
+import bankinfo.model.ClientType;
+import bankinfo.web.form.ClientForm;
+import bankinfo.web.service.ClientService;
+import bankinfo.web.service.ValidationException;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
+
+@Controller
+@RequestMapping(&quot;/clients&quot;)
+public class ClientController {
+
+    private final ClientService clientService;
+
+<span class="fc" id="L27">    public ClientController(ClientService clientService) {</span>
+<span class="fc" id="L28">        this.clientService = clientService;</span>
+<span class="fc" id="L29">    }</span>
+
+    @GetMapping
+    public String listClients(
+            @RequestParam(value = &quot;q&quot;, required = false) String query,
+            @RequestParam(value = &quot;type&quot;, required = false) ClientType type,
+            Model model
+    ) {
+<span class="fc" id="L37">        List&lt;Client&gt; clients = clientService.findClients(query, type);</span>
+<span class="fc" id="L38">        model.addAttribute(&quot;clients&quot;, clients);</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        model.addAttribute(&quot;query&quot;, query == null ? &quot;&quot; : query);</span>
+<span class="fc" id="L40">        model.addAttribute(&quot;selectedType&quot;, type);</span>
+<span class="fc" id="L41">        model.addAttribute(&quot;allTypes&quot;, ClientType.values());</span>
+<span class="fc" id="L42">        return &quot;p5-clients&quot;;</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public String clientCard(@PathVariable(&quot;id&quot;) Long clientId, Model model) {
+<span class="fc" id="L47">        Client client = clientService.findClientDetails(clientId)</span>
+<span class="fc" id="L48">                .orElseThrow(() -&gt; new ValidationException(&quot;Client not found: &quot; + clientId));</span>
+<span class="fc" id="L49">        List&lt;Account&gt; accounts = clientService.findClientAccounts(clientId);</span>
+
+<span class="fc" id="L51">        model.addAttribute(&quot;client&quot;, client);</span>
+<span class="fc" id="L52">        model.addAttribute(&quot;accounts&quot;, accounts);</span>
+<span class="fc" id="L53">        return &quot;p6-client&quot;;</span>
+    }
+
+    @GetMapping(&quot;/form&quot;)
+    public String createClientForm(Model model) {
+<span class="fc" id="L58">        ClientForm form = new ClientForm();</span>
+<span class="fc" id="L59">        form.setClientType(ClientType.PERSON);</span>
+<span class="fc" id="L60">        model.addAttribute(&quot;form&quot;, form);</span>
+<span class="fc" id="L61">        model.addAttribute(&quot;allTypes&quot;, ClientType.values());</span>
+<span class="fc" id="L62">        return &quot;p7-client-form&quot;;</span>
+    }
+
+    @GetMapping(&quot;/{id}/edit&quot;)
+    public String editClientForm(@PathVariable(&quot;id&quot;) Long clientId, Model model) {
+<span class="fc" id="L67">        Client client = clientService.findClientDetails(clientId)</span>
+<span class="fc" id="L68">                .orElseThrow(() -&gt; new ValidationException(&quot;Client not found: &quot; + clientId));</span>
+
+<span class="fc" id="L70">        ClientForm form = new ClientForm();</span>
+<span class="fc" id="L71">        form.setId(client.getId());</span>
+<span class="fc" id="L72">        form.setClientType(client.getClientType());</span>
+<span class="fc" id="L73">        form.setDisplayName(client.getDisplayName());</span>
+
+<span class="fc" id="L75">        model.addAttribute(&quot;form&quot;, form);</span>
+<span class="fc" id="L76">        model.addAttribute(&quot;allTypes&quot;, ClientType.values());</span>
+<span class="fc" id="L77">        return &quot;p7-client-form&quot;;</span>
+    }
+
+    @PostMapping(&quot;/save&quot;)
+    public String saveClient(
+            @ModelAttribute(&quot;form&quot;) ClientForm form,
+            RedirectAttributes redirectAttributes,
+            Model model
+    ) {
+        try {
+<span class="fc" id="L87">            Client saved = clientService.saveClient(form.getId(), form.getClientType(), form.getDisplayName());</span>
+<span class="fc" id="L88">            redirectAttributes.addFlashAttribute(&quot;message&quot;, &quot;Client saved&quot;);</span>
+<span class="fc" id="L89">            return &quot;redirect:/clients/&quot; + saved.getId();</span>
+<span class="fc" id="L90">        } catch (ValidationException exception) {</span>
+<span class="fc" id="L91">            model.addAttribute(&quot;form&quot;, form);</span>
+<span class="fc" id="L92">            model.addAttribute(&quot;allTypes&quot;, ClientType.values());</span>
+<span class="fc" id="L93">            model.addAttribute(&quot;errorMessage&quot;, exception.getMessage());</span>
+<span class="fc" id="L94">            return &quot;p7-client-form&quot;;</span>
+        }
+    }
+
+    @PostMapping(&quot;/{id}/delete&quot;)
+    public String deleteClient(
+            @PathVariable(&quot;id&quot;) Long clientId,
+            RedirectAttributes redirectAttributes,
+            Model model
+    ) {
+        try {
+<span class="fc" id="L105">            clientService.deleteClient(clientId);</span>
+<span class="fc" id="L106">            redirectAttributes.addFlashAttribute(&quot;message&quot;, &quot;Client deleted&quot;);</span>
+<span class="fc" id="L107">            return &quot;redirect:/clients&quot;;</span>
+<span class="fc" id="L108">        } catch (ValidationException exception) {</span>
+<span class="fc" id="L109">            Client client = clientService.findClientDetails(clientId)</span>
+<span class="fc" id="L110">                    .orElseThrow(() -&gt; exception);</span>
+<span class="fc" id="L111">            model.addAttribute(&quot;client&quot;, client);</span>
+<span class="fc" id="L112">            model.addAttribute(&quot;accounts&quot;, clientService.findClientAccounts(clientId));</span>
+<span class="fc" id="L113">            model.addAttribute(&quot;errorMessage&quot;, exception.getMessage());</span>
+<span class="fc" id="L114">            return &quot;p6-client&quot;;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

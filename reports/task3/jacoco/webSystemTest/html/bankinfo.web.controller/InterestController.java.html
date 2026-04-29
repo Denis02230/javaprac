@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InterestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.web.controller</a> &gt; <span class="el_source">InterestController.java</span></div><h1>InterestController.java</h1><pre class="source lang-java linenums">package bankinfo.web.controller;
+
+import bankinfo.web.form.InterestRunForm;
+import bankinfo.web.service.AccountService;
+import bankinfo.web.service.InterestRunResult;
+import bankinfo.web.service.ValidationException;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
+
+@Controller
+@RequestMapping(&quot;/interest&quot;)
+public class InterestController {
+
+    private final AccountService accountService;
+
+<span class="fc" id="L23">    public InterestController(AccountService accountService) {</span>
+<span class="fc" id="L24">        this.accountService = accountService;</span>
+<span class="fc" id="L25">    }</span>
+
+    @GetMapping
+    public String interestPage(Model model) {
+<span class="pc bpc" id="L29" title="1 of 2 branches missed.">        if (!model.containsAttribute(&quot;form&quot;)) {</span>
+<span class="fc" id="L30">            model.addAttribute(&quot;form&quot;, new InterestRunForm());</span>
+        }
+<span class="fc" id="L32">        return &quot;p17-interest&quot;;</span>
+    }
+
+    @PostMapping(&quot;/run&quot;)
+    public String run(@ModelAttribute(&quot;form&quot;) InterestRunForm form, Model model) {
+        try {
+<span class="fc" id="L38">            OffsetDateTime runAt = parseRunAt(form.getRunAtIso());</span>
+<span class="fc" id="L39">            InterestRunResult report = accountService.runInterest(runAt);</span>
+<span class="fc" id="L40">            model.addAttribute(&quot;report&quot;, report);</span>
+<span class="fc" id="L41">        } catch (ValidationException exception) {</span>
+<span class="fc" id="L42">            model.addAttribute(&quot;errorMessage&quot;, exception.getMessage());</span>
+<span class="fc" id="L43">        }</span>
+<span class="fc" id="L44">        model.addAttribute(&quot;form&quot;, form);</span>
+<span class="fc" id="L45">        return &quot;p17-interest&quot;;</span>
+    }
+
+    private OffsetDateTime parseRunAt(String raw) {
+<span class="pc bpc" id="L49" title="1 of 4 branches missed.">        if (raw == null || raw.isBlank()) {</span>
+<span class="fc" id="L50">            return null;</span>
+        }
+        try {
+<span class="fc" id="L53">            return OffsetDateTime.parse(raw.trim());</span>
+<span class="fc" id="L54">        } catch (DateTimeParseException exception) {</span>
+<span class="fc" id="L55">            throw new ValidationException(&quot;Invalid run timestamp format. Expected ISO offset date-time&quot;);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

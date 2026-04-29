@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id 'jacoco'
+    id 'war'
 }
 
 group = 'bankinfo'
@@ -17,12 +18,38 @@ java {
     }
 }
 
+sourceSets {
+    launcher {
+        java.srcDir 'src/launcher/java'
+        resources.srcDir 'src/launcher/resources'
+        compileClasspath = configurations.launcherCompileClasspath
+        runtimeClasspath = output + configurations.launcherRuntimeClasspath
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+}
+
 dependencies {
     implementation 'org.hibernate:hibernate-core:5.6.15.Final'
     implementation 'io.hypersistence:hypersistence-utils-hibernate-55:3.7.6'
     implementation 'org.postgresql:postgresql:42.7.7'
+    implementation 'org.springframework:spring-webmvc:5.3.39'
+    implementation 'javax.servlet:jstl:1.2'
+
+    launcherImplementation 'org.apache.tomcat.embed:tomcat-embed-core:9.0.108'
+    launcherImplementation 'org.apache.tomcat.embed:tomcat-embed-jasper:9.0.108'
+    launcherImplementation 'org.apache.tomcat.embed:tomcat-embed-el:9.0.108'
+
+    compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
+    compileOnly 'javax.servlet.jsp:javax.servlet.jsp-api:2.3.3'
 
     testImplementation 'org.testng:testng:7.11.0'
+    testImplementation 'org.springframework:spring-test:5.3.39'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+    testImplementation 'javax.servlet:javax.servlet-api:4.0.1'
+    testImplementation 'com.opentable.components:otj-pg-embedded:0.13.4'
 }
 
 application {
@@ -45,7 +72,7 @@ jacocoTestReport {
 
 test {
     useTestNG()
-    forkEvery = 1
+    forkEvery = 0
     maxParallelForks = 1
     finalizedBy jacocoTestReport
 }
@@ -65,6 +92,17 @@ tasks.register('dbCreate', Exec) {
             '-U', dbUser,
             '-d', dbName,
             '-f', 'src/main/resources/db/create.sql'
+}
+
+tasks.register('dbEnsure', Exec) {
+    environment 'PGPASSWORD', dbPassword
+    commandLine 'psql',
+            '-v', 'ON_ERROR_STOP=1',
+            '-h', dbHost,
+            '-p', dbPort,
+            '-U', dbUser,
+            '-d', 'postgres',
+            '-f', 'src/main/resources/db/ensure_db.sql'
 }
 
 tasks.register('dbClean', Exec) {
@@ -104,12 +142,94 @@ tasks.named('dbClean') {
     dependsOn 'dbCreate'
 }
 
+tasks.named('dbCreate') {
+    dependsOn 'dbEnsure'
+}
+
 tasks.named('dbInit') {
     dependsOn 'dbClean'
 }
 
 tasks.named('dbShow') {
     dependsOn 'dbInit'
+}
+
+tasks.register('runAllTests') {
+    group = 'verification'
+    description = 'Runs all TestNG tests'
+    dependsOn 'test'
+}
+
+tasks.register('webSystemTest', Test) {
+    group = 'verification'
+    description = 'Runs only web system tests'
+    useTestNG()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    filter {
+        includeTestsMatching 'bankinfo.web.WebSystemTest'
+    }
+}
+
+tasks.register('backendTest', Test) {
+    group = 'verification'
+    description = 'Runs backend tests (all except web system tests)'
+    useTestNG()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    filter {
+        excludeTestsMatching 'bankinfo.web.*'
+    }
+}
+
+tasks.register('jacocoWebSystemTestReport', JacocoReport) {
+    group = 'verification'
+    description = 'Generates JaCoCo report for web system tests'
+    dependsOn 'webSystemTest'
+    executionData(layout.buildDirectory.file('jacoco/webSystemTest.exec'))
+    sourceSets sourceSets.main
+
+    reports {
+        xml.required = true
+        xml.outputLocation = layout.buildDirectory.file('reports/jacoco/webSystemTest/jacoco.xml')
+        html.required = true
+        html.outputLocation = layout.buildDirectory.dir('reports/jacoco/webSystemTest/html')
+        csv.required = false
+    }
+}
+
+tasks.register('jacocoBackendTestReport', JacocoReport) {
+    group = 'verification'
+    description = 'Generates JaCoCo report for backend tests'
+    dependsOn 'backendTest'
+    executionData(layout.buildDirectory.file('jacoco/backendTest.exec'))
+    sourceSets sourceSets.main
+
+    reports {
+        xml.required = true
+        xml.outputLocation = layout.buildDirectory.file('reports/jacoco/backendTest/jacoco.xml')
+        html.required = true
+        html.outputLocation = layout.buildDirectory.dir('reports/jacoco/backendTest/html')
+        csv.required = false
+    }
+}
+
+tasks.register('webCoverage') {
+    group = 'verification'
+    description = 'Runs web system tests and builds dedicated coverage report'
+    dependsOn 'jacocoWebSystemTestReport'
+}
+
+tasks.register('backendCoverage') {
+    group = 'verification'
+    description = 'Runs backend tests and builds dedicated coverage report'
+    dependsOn 'jacocoBackendTestReport'
+}
+
+tasks.register('webSystemCoverage') {
+    group = 'verification'
+    description = 'Runs web system tests and generates task3-style coverage report'
+    dependsOn 'jacocoWebSystemTestReport'
 }
 
 tasks.register('runSmoke', JavaExec) {
@@ -120,8 +240,43 @@ tasks.register('runSmoke', JavaExec) {
     dependsOn 'classes', 'dbInit'
 }
 
-tasks.register('runAllTests') {
-    group = 'verification'
-    description = 'Runs all TestNG tests'
-    dependsOn 'test'
+tasks.register('packageWebApp') {
+    group = 'distribution'
+    description = 'Runs full verification and assembles WAR artifact'
+    dependsOn 'runAllTests', 'war'
+}
+
+tasks.register('deployWebApp', Copy) {
+    group = 'distribution'
+    description = 'Stages WAR artifact for deployment in build/deploy'
+    dependsOn 'packageWebApp'
+    from(tasks.named('war').flatMap { it.archiveFile })
+    into layout.buildDirectory.dir('deploy')
+}
+
+tasks.register('fullDelivery') {
+    group = 'distribution'
+    description = 'Builds, tests and stages deployable web artifact'
+    dependsOn 'deployWebApp'
+}
+
+tasks.register('launchAll') {
+    group = 'application'
+    description = 'One-command launch: test, package, stage deploy artifact, init DB, run smoke scenario and start website'
+    dependsOn 'runWebsite'
+}
+
+tasks.register('cleanLaunchCaches', Delete) {
+    group = 'application'
+    description = 'Removes generated Tomcat/JSP caches before website start'
+    delete layout.buildDirectory.dir('tomcat')
+    delete layout.projectDirectory.dir('tomcat.8080/work')
+}
+
+tasks.register('runWebsite', JavaExec) {
+    group = 'application'
+    description = 'Starts embedded Tomcat with JSP-based web application'
+    classpath = sourceSets.launcher.runtimeClasspath
+    mainClass = 'bankinfo.launcher.WebLauncher'
+    dependsOn 'fullDelivery', 'runSmoke', 'launcherClasses', 'cleanLaunchCaches'
 }

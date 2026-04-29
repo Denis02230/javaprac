@@ -5,10 +5,12 @@ import bankinfo.model.ClientType;
 import bankinfo.util.HibernateUtil;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public class ClientDao {
 
     public List<Client> findAll() {
@@ -68,6 +70,24 @@ public class ClientDao {
         }
     }
 
+    public Optional<Client> findByIdDetailed(Long id) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Client client = session.get(Client.class, id);
+            if (client == null) {
+                return Optional.empty();
+            }
+
+            client.getAddresses().size();
+            client.getPhones().size();
+            client.getEmails().size();
+            client.getContactPersons().size();
+
+            return Optional.of(client);
+        } catch (Exception e) {
+            throw new DaoException("Failed to load detailed client by id=" + id, e);
+        }
+    }
+
     public List<Client> findByType(ClientType clientType) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             return session.createQuery(
@@ -123,6 +143,24 @@ public class ClientDao {
                 tx.rollback();
             }
             throw new DaoException("Failed to save client", e);
+        }
+    }
+
+    public void deleteById(Long id) {
+        Transaction tx = null;
+
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            tx = session.beginTransaction();
+            Client client = session.get(Client.class, id);
+            if (client != null) {
+                session.delete(client);
+            }
+            tx.commit();
+        } catch (Exception e) {
+            if (tx != null) {
+                tx.rollback();
+            }
+            throw new DaoException("Failed to delete client by id=" + id, e);
         }
     }
 }

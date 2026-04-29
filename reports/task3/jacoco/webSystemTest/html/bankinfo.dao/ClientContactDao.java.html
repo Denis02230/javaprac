@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientContactDao.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.dao</a> &gt; <span class="el_source">ClientContactDao.java</span></div><h1>ClientContactDao.java</h1><pre class="source lang-java linenums">package bankinfo.dao;
+
+import bankinfo.model.ClientEmail;
+import bankinfo.model.ClientPhone;
+import bankinfo.model.ContactPerson;
+import bankinfo.model.EmailType;
+import bankinfo.model.PhoneType;
+import bankinfo.util.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+<span class="fc" id="L16">public class ClientContactDao {</span>
+
+    public List&lt;ClientPhone&gt; findPhonesByClientId(Long clientId) {
+<span class="nc" id="L19">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L20">            return session.createQuery(</span>
+                    &quot;select p from ClientPhone p &quot; +
+                    &quot;join fetch p.client c &quot; +
+                    &quot;where c.id = :clientId &quot; +
+                    &quot;order by p.id&quot;,
+                    ClientPhone.class
+<span class="nc" id="L26">            ).setParameter(&quot;clientId&quot;, clientId).list();</span>
+<span class="nc" id="L27">        } catch (Exception e) {</span>
+<span class="nc" id="L28">            throw new DaoException(&quot;Failed to load phones by clientId=&quot; + clientId, e);</span>
+        }
+    }
+
+    public List&lt;ClientPhone&gt; findPhonesByType(PhoneType phoneType) {
+<span class="nc" id="L33">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L34">            return session.createQuery(</span>
+                    &quot;select p from ClientPhone p &quot; +
+                    &quot;where p.phoneType = :phoneType &quot; +
+                    &quot;order by p.id&quot;,
+                    ClientPhone.class
+<span class="nc" id="L39">            ).setParameter(&quot;phoneType&quot;, phoneType).list();</span>
+<span class="nc" id="L40">        } catch (Exception e) {</span>
+<span class="nc" id="L41">            throw new DaoException(&quot;Failed to load phones by type=&quot; + phoneType, e);</span>
+        }
+    }
+
+    public List&lt;ClientEmail&gt; findEmailsByClientId(Long clientId) {
+<span class="nc" id="L46">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L47">            return session.createQuery(</span>
+                    &quot;select e from ClientEmail e &quot; +
+                    &quot;join fetch e.client c &quot; +
+                    &quot;where c.id = :clientId &quot; +
+                    &quot;order by e.id&quot;,
+                    ClientEmail.class
+<span class="nc" id="L53">            ).setParameter(&quot;clientId&quot;, clientId).list();</span>
+<span class="nc" id="L54">        } catch (Exception e) {</span>
+<span class="nc" id="L55">            throw new DaoException(&quot;Failed to load emails by clientId=&quot; + clientId, e);</span>
+        }
+    }
+
+    public List&lt;ClientEmail&gt; findEmailsByType(EmailType emailType) {
+<span class="nc" id="L60">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L61">            return session.createQuery(</span>
+                    &quot;select e from ClientEmail e &quot; +
+                    &quot;where e.emailType = :emailType &quot; +
+                    &quot;order by e.id&quot;,
+                    ClientEmail.class
+<span class="nc" id="L66">            ).setParameter(&quot;emailType&quot;, emailType).list();</span>
+<span class="nc" id="L67">        } catch (Exception e) {</span>
+<span class="nc" id="L68">            throw new DaoException(&quot;Failed to load emails by type=&quot; + emailType, e);</span>
+        }
+    }
+
+    public List&lt;ContactPerson&gt; findContactPersonsByClientId(Long clientId) {
+<span class="nc" id="L73">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L74">            return session.createQuery(</span>
+                    &quot;select cp from ContactPerson cp &quot; +
+                    &quot;join fetch cp.client c &quot; +
+                    &quot;where c.id = :clientId &quot; +
+                    &quot;order by cp.id&quot;,
+                    ContactPerson.class
+<span class="nc" id="L80">            ).setParameter(&quot;clientId&quot;, clientId).list();</span>
+<span class="nc" id="L81">        } catch (Exception e) {</span>
+<span class="nc" id="L82">            throw new DaoException(&quot;Failed to load contact persons by clientId=&quot; + clientId, e);</span>
+        }
+    }
+
+    public List&lt;ContactPerson&gt; findContactPersonsWithEmail() {
+<span class="nc" id="L87">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L88">            return session.createQuery(</span>
+                    &quot;select cp from ContactPerson cp &quot; +
+                    &quot;where cp.email is not null &quot; +
+                    &quot;order by cp.id&quot;,
+                    ContactPerson.class
+<span class="nc" id="L93">            ).list();</span>
+<span class="nc" id="L94">        } catch (Exception e) {</span>
+<span class="nc" id="L95">            throw new DaoException(&quot;Failed to load contact persons with email&quot;, e);</span>
+        }
+    }
+
+    public ClientPhone savePhone(ClientPhone phone) {
+<span class="nc" id="L100">        Transaction tx = null;</span>
+
+<span class="nc" id="L102">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L103">            tx = session.beginTransaction();</span>
+<span class="nc" id="L104">            session.saveOrUpdate(phone);</span>
+<span class="nc" id="L105">            tx.commit();</span>
+<span class="nc" id="L106">            return phone;</span>
+<span class="nc" id="L107">        } catch (Exception e) {</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">            if (tx != null) {</span>
+<span class="nc" id="L109">                tx.rollback();</span>
+            }
+<span class="nc" id="L111">            throw new DaoException(&quot;Failed to save client phone&quot;, e);</span>
+        }
+    }
+
+    public ClientEmail saveEmail(ClientEmail email) {
+<span class="nc" id="L116">        Transaction tx = null;</span>
+
+<span class="nc" id="L118">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L119">            tx = session.beginTransaction();</span>
+<span class="nc" id="L120">            session.saveOrUpdate(email);</span>
+<span class="nc" id="L121">            tx.commit();</span>
+<span class="nc" id="L122">            return email;</span>
+<span class="nc" id="L123">        } catch (Exception e) {</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">            if (tx != null) {</span>
+<span class="nc" id="L125">                tx.rollback();</span>
+            }
+<span class="nc" id="L127">            throw new DaoException(&quot;Failed to save client email&quot;, e);</span>
+        }
+    }
+
+    public ContactPerson saveContactPerson(ContactPerson contactPerson) {
+<span class="nc" id="L132">        Transaction tx = null;</span>
+
+<span class="nc" id="L134">        try (Session session = HibernateUtil.getSessionFactory().openSession()) {</span>
+<span class="nc" id="L135">            tx = session.beginTransaction();</span>
+<span class="nc" id="L136">            session.saveOrUpdate(contactPerson);</span>
+<span class="nc" id="L137">            tx.commit();</span>
+<span class="nc" id="L138">            return contactPerson;</span>
+<span class="nc" id="L139">        } catch (Exception e) {</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">            if (tx != null) {</span>
+<span class="nc" id="L141">                tx.rollback();</span>
+            }
+<span class="nc" id="L143">            throw new DaoException(&quot;Failed to save contact person&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

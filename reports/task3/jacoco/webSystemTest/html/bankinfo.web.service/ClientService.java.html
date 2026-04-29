@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ClientService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.web.service</a> &gt; <span class="el_source">ClientService.java</span></div><h1>ClientService.java</h1><pre class="source lang-java linenums">package bankinfo.web.service;
+
+import bankinfo.dao.AccountDao;
+import bankinfo.dao.ClientDao;
+import bankinfo.model.Account;
+import bankinfo.model.Client;
+import bankinfo.model.ClientType;
+import org.springframework.stereotype.Service;
+
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class ClientService {
+
+    private final ClientDao clientDao;
+    private final AccountDao accountDao;
+
+<span class="fc" id="L21">    public ClientService(ClientDao clientDao, AccountDao accountDao) {</span>
+<span class="fc" id="L22">        this.clientDao = clientDao;</span>
+<span class="fc" id="L23">        this.accountDao = accountDao;</span>
+<span class="fc" id="L24">    }</span>
+
+    public List&lt;Client&gt; findClients(String query, ClientType type) {
+        List&lt;Client&gt; base;
+
+<span class="fc bfc" id="L29" title="All 2 branches covered.">        if (type != null) {</span>
+<span class="fc" id="L30">            base = clientDao.findByType(type);</span>
+        } else {
+<span class="fc" id="L32">            base = clientDao.findAll();</span>
+        }
+
+<span class="pc bpc" id="L35" title="1 of 4 branches missed.">        if (query == null || query.isBlank()) {</span>
+<span class="fc" id="L36">            return base;</span>
+        }
+
+<span class="fc" id="L39">        String normalized = query.trim().toLowerCase();</span>
+<span class="fc" id="L40">        List&lt;Client&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        for (Client client : base) {</span>
+<span class="pc bpc" id="L42" title="1 of 4 branches missed.">            if (client.getDisplayName() != null &amp;&amp; client.getDisplayName().toLowerCase().contains(normalized)) {</span>
+<span class="fc" id="L43">                result.add(client);</span>
+            }
+<span class="fc" id="L45">        }</span>
+<span class="fc" id="L46">        return result;</span>
+    }
+
+    public Optional&lt;Client&gt; findClientDetails(Long id) {
+<span class="fc" id="L50">        return clientDao.findByIdDetailed(id);</span>
+    }
+
+    public List&lt;Account&gt; findClientAccounts(Long clientId) {
+<span class="fc" id="L54">        return accountDao.findByClientId(clientId);</span>
+    }
+
+    public Client saveClient(Long id, ClientType clientType, String displayName) {
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (clientType == null) {</span>
+<span class="fc" id="L59">            throw new ValidationException(&quot;Client type is required&quot;);</span>
+        }
+<span class="pc bpc" id="L61" title="1 of 4 branches missed.">        if (displayName == null || displayName.isBlank()) {</span>
+<span class="fc" id="L62">            throw new ValidationException(&quot;Display name is required&quot;);</span>
+        }
+
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        Client client = id == null ? new Client() : clientDao.findById(id)</span>
+<span class="fc" id="L66">                .orElseThrow(() -&gt; new ValidationException(&quot;Client not found: &quot; + id));</span>
+
+<span class="fc" id="L68">        client.setClientType(clientType);</span>
+<span class="fc" id="L69">        client.setDisplayName(displayName.trim());</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (client.getCreatedAt() == null) {</span>
+<span class="fc" id="L71">            client.setCreatedAt(OffsetDateTime.now());</span>
+        }
+<span class="fc" id="L73">        return clientDao.save(client);</span>
+    }
+
+    public void deleteClient(Long id) {
+<span class="fc" id="L77">        Client client = clientDao.findById(id)</span>
+<span class="fc" id="L78">                .orElseThrow(() -&gt; new ValidationException(&quot;Client not found: &quot; + id));</span>
+
+<span class="fc" id="L80">        List&lt;Account&gt; accounts = accountDao.findByClientId(client.getId());</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        if (!accounts.isEmpty()) {</span>
+<span class="fc" id="L82">            throw new ValidationException(&quot;Cannot delete client with existing accounts&quot;);</span>
+        }
+
+<span class="fc" id="L85">        clientDao.deleteById(id);</span>
+<span class="fc" id="L86">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

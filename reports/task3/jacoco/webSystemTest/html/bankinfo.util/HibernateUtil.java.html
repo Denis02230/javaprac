@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HibernateUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.util</a> &gt; <span class="el_source">HibernateUtil.java</span></div><h1>HibernateUtil.java</h1><pre class="source lang-java linenums">package bankinfo.util;
+
+import bankinfo.model.*;
+import org.hibernate.SessionFactory;
+import org.hibernate.cfg.Configuration;
+
+public final class HibernateUtil {
+
+    private static SessionFactory sessionFactory;
+
+    private HibernateUtil() {
+    }
+
+    private static SessionFactory buildSessionFactory() {
+        try {
+<span class="fc" id="L16">            Configuration configuration = new Configuration()</span>
+<span class="fc" id="L17">                    .configure()</span>
+<span class="fc" id="L18">                    .addAnnotatedClass(Branch.class)</span>
+<span class="fc" id="L19">                    .addAnnotatedClass(Client.class)</span>
+<span class="fc" id="L20">                    .addAnnotatedClass(ClientAddress.class)</span>
+<span class="fc" id="L21">                    .addAnnotatedClass(AccountType.class)</span>
+<span class="fc" id="L22">                    .addAnnotatedClass(Account.class)</span>
+<span class="fc" id="L23">                    .addAnnotatedClass(AccountTx.class)</span>
+<span class="fc" id="L24">                    .addAnnotatedClass(ClientPhone.class)</span>
+<span class="fc" id="L25">                    .addAnnotatedClass(ClientEmail.class)</span>
+<span class="fc" id="L26">                    .addAnnotatedClass(ContactPerson.class);</span>
+
+<span class="fc" id="L28">            String dbHost = System.getProperty(&quot;bankinfo.db.host&quot;);</span>
+<span class="fc" id="L29">            String dbPort = System.getProperty(&quot;bankinfo.db.port&quot;);</span>
+<span class="fc" id="L30">            String dbName = System.getProperty(&quot;bankinfo.db.name&quot;);</span>
+<span class="fc" id="L31">            String dbUser = System.getProperty(&quot;bankinfo.db.user&quot;);</span>
+<span class="fc" id="L32">            String dbPassword = System.getProperty(&quot;bankinfo.db.password&quot;);</span>
+
+<span class="pc bpc" id="L34" title="5 of 6 branches missed.">            if (dbHost != null || dbPort != null || dbName != null) {</span>
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">                String host = dbHost == null ? &quot;127.0.0.1&quot; : dbHost;</span>
+<span class="pc bpc" id="L36" title="1 of 2 branches missed.">                String port = dbPort == null ? &quot;5432&quot; : dbPort;</span>
+<span class="pc bpc" id="L37" title="1 of 2 branches missed.">                String name = dbName == null ? &quot;bankinfo&quot; : dbName;</span>
+<span class="fc" id="L38">                configuration.setProperty(&quot;hibernate.connection.url&quot;, &quot;jdbc:postgresql://&quot; + host + &quot;:&quot; + port + &quot;/&quot; + name);</span>
+            }
+
+<span class="pc bpc" id="L41" title="1 of 2 branches missed.">            if (dbUser != null) {</span>
+<span class="fc" id="L42">                configuration.setProperty(&quot;hibernate.connection.username&quot;, dbUser);</span>
+            }
+
+<span class="pc bpc" id="L45" title="1 of 2 branches missed.">            if (dbPassword != null) {</span>
+<span class="fc" id="L46">                configuration.setProperty(&quot;hibernate.connection.password&quot;, dbPassword);</span>
+            }
+
+<span class="fc" id="L49">            return configuration.buildSessionFactory();</span>
+<span class="nc" id="L50">        } catch (Throwable ex) {</span>
+<span class="nc" id="L51">            System.err.println(&quot;Failed to build SessionFactory&quot;);</span>
+<span class="nc" id="L52">            ex.printStackTrace();</span>
+<span class="nc" id="L53">            throw new ExceptionInInitializerError(ex);</span>
+        }
+    }
+
+    public static synchronized SessionFactory getSessionFactory() {
+<span class="pc bpc" id="L58" title="1 of 4 branches missed.">        if (sessionFactory == null || sessionFactory.isClosed()) {</span>
+<span class="fc" id="L59">            sessionFactory = buildSessionFactory();</span>
+        }
+<span class="fc" id="L61">        return sessionFactory;</span>
+    }
+
+    public static synchronized void shutdown() {
+<span class="nc bnc" id="L65" title="All 4 branches missed.">        if (sessionFactory != null &amp;&amp; !sessionFactory.isClosed()) {</span>
+<span class="nc" id="L66">            sessionFactory.close();</span>
+        }
+<span class="nc" id="L68">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

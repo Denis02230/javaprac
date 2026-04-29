@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InterestRunResult.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.web.service</a> &gt; <span class="el_source">InterestRunResult.java</span></div><h1>InterestRunResult.java</h1><pre class="source lang-java linenums">package bankinfo.web.service;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+<span class="fc" id="L8">public class InterestRunResult {</span>
+
+    private int createdOperations;
+<span class="fc" id="L11">    private final List&lt;String&gt; processedAccounts = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L12">    private final List&lt;String&gt; skippedAccounts = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L13">    private BigDecimal totalInterest = BigDecimal.ZERO;</span>
+
+    public int getCreatedOperations() {
+<span class="fc" id="L16">        return createdOperations;</span>
+    }
+
+    public void incrementCreatedOperations() {
+<span class="fc" id="L20">        this.createdOperations++;</span>
+<span class="fc" id="L21">    }</span>
+
+    public List&lt;String&gt; getProcessedAccounts() {
+<span class="fc" id="L24">        return Collections.unmodifiableList(processedAccounts);</span>
+    }
+
+    public void addProcessedAccount(String accountNumber) {
+<span class="fc" id="L28">        processedAccounts.add(accountNumber);</span>
+<span class="fc" id="L29">    }</span>
+
+    public List&lt;String&gt; getSkippedAccounts() {
+<span class="fc" id="L32">        return Collections.unmodifiableList(skippedAccounts);</span>
+    }
+
+    public void addSkippedAccount(String reason) {
+<span class="fc" id="L36">        skippedAccounts.add(reason);</span>
+<span class="fc" id="L37">    }</span>
+
+    public BigDecimal getTotalInterest() {
+<span class="fc" id="L40">        return totalInterest;</span>
+    }
+
+    public void addTotalInterest(BigDecimal amount) {
+<span class="fc" id="L44">        totalInterest = totalInterest.add(amount);</span>
+<span class="fc" id="L45">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
