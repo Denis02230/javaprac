@@ -9,8 +9,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class ClientService {
@@ -23,7 +25,7 @@ public class ClientService {
         this.accountDao = accountDao;
     }
 
-    public List<Client> findClients(String query, ClientType type) {
+    public List<Client> findClients(String query, ClientType type, Long accountTypeId) {
         List<Client> base;
 
         if (type != null) {
@@ -32,13 +34,15 @@ public class ClientService {
             base = clientDao.findAll();
         }
 
+        List<Client> filteredByAccountType = filterByAccountType(base, accountTypeId);
+
         if (query == null || query.isBlank()) {
-            return base;
+            return filteredByAccountType;
         }
 
         String normalized = query.trim().toLowerCase();
         List<Client> result = new ArrayList<>();
-        for (Client client : base) {
+        for (Client client : filteredByAccountType) {
             if (client.getDisplayName() != null && client.getDisplayName().toLowerCase().contains(normalized)) {
                 result.add(client);
             }
@@ -83,5 +87,27 @@ public class ClientService {
         }
 
         clientDao.deleteById(id);
+    }
+
+    private List<Client> filterByAccountType(List<Client> clients, Long accountTypeId) {
+        if (accountTypeId == null) {
+            return clients;
+        }
+
+        List<Account> accountsOfType = accountDao.findByAccountTypeId(accountTypeId);
+        Set<Long> allowedClientIds = new HashSet<>();
+        for (Account account : accountsOfType) {
+            if (account.getClient() != null && account.getClient().getId() != null) {
+                allowedClientIds.add(account.getClient().getId());
+            }
+        }
+
+        List<Client> result = new ArrayList<>();
+        for (Client client : clients) {
+            if (allowedClientIds.contains(client.getId())) {
+                result.add(client);
+            }
+        }
+        return result;
     }
 }

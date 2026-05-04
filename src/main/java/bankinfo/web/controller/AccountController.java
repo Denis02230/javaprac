@@ -59,7 +59,7 @@ public class AccountController {
 
         model.addAttribute("accounts", accounts);
         model.addAttribute("allStatuses", AccountStatus.values());
-        model.addAttribute("clients", clientService.findClients(null, null));
+        model.addAttribute("clients", clientService.findClients(null, null, null));
         model.addAttribute("branches", branchService.findBranches(null));
         model.addAttribute("accountTypes", accountTypeService.findAccountTypes(null));
         model.addAttribute("selectedStatus", status);
@@ -203,7 +203,7 @@ public class AccountController {
     }
 
     private void prepareOpenAccountViewModel(Model model) {
-        model.addAttribute("clients", clientService.findClients(null, null));
+        model.addAttribute("clients", clientService.findClients(null, null, null));
         model.addAttribute("branches", branchService.findBranches(null));
         model.addAttribute("accountTypes", accountTypeService.findAccountTypes(null));
     }

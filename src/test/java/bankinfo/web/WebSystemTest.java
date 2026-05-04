@@ -321,9 +321,11 @@ public class WebSystemTest {
         waitForHeading("Client List");
         typeByName("q", "Alpha");
         selectByName("type", "ORG");
+        selectByName("accountTypeId", "4");
         clickButton("Filter");
 
         assertBodyContains("Alpha LLC");
+        assertBodyNotContains("Bella Trade JSC");
         clickRowActionLink("Alpha LLC", "Open");
         waitForHeading("Client Card");
         assertBodyContains("Name: Alpha LLC");

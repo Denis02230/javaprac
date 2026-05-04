@@ -14,6 +14,14 @@
             <option value="${clientType}" <c:if test="${selectedType == clientType}">selected</c:if>>${clientType}</option>
         </c:forEach>
     </select>
+    <select name="accountTypeId">
+        <option value="">All account types</option>
+        <c:forEach var="accountType" items="${accountTypes}">
+            <option value="${accountType.id}" <c:if test="${selectedAccountTypeId == accountType.id}">selected</c:if>>
+                ${accountType.name}
+            </option>
+        </c:forEach>
+    </select>
     <button type="submit">Filter</button>
 </form>
 <p><a href="${ctx}/clients/form">Add client</a></p>

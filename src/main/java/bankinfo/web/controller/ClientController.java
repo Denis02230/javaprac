@@ -1,9 +1,11 @@
 package bankinfo.web.controller;
 
 import bankinfo.model.Account;
+import bankinfo.model.AccountType;
 import bankinfo.model.Client;
 import bankinfo.model.ClientType;
 import bankinfo.web.form.ClientForm;
+import bankinfo.web.service.AccountTypeService;
 import bankinfo.web.service.ClientService;
 import bankinfo.web.service.ValidationException;
 import org.springframework.stereotype.Controller;
@@ -23,21 +25,27 @@ import java.util.List;
 public class ClientController {
 
     private final ClientService clientService;
+    private final AccountTypeService accountTypeService;
 
-    public ClientController(ClientService clientService) {
+    public ClientController(ClientService clientService, AccountTypeService accountTypeService) {
         this.clientService = clientService;
+        this.accountTypeService = accountTypeService;
     }
 
     @GetMapping
     public String listClients(
             @RequestParam(value = "q", required = false) String query,
             @RequestParam(value = "type", required = false) ClientType type,
+            @RequestParam(value = "accountTypeId", required = false) Long accountTypeId,
             Model model
     ) {
-        List<Client> clients = clientService.findClients(query, type);
+        List<Client> clients = clientService.findClients(query, type, accountTypeId);
+        List<AccountType> accountTypes = accountTypeService.findAccountTypes(null);
         model.addAttribute("clients", clients);
         model.addAttribute("query", query == null ? "" : query);
         model.addAttribute("selectedType", type);
+        model.addAttribute("accountTypes", accountTypes);
+        model.addAttribute("selectedAccountTypeId", accountTypeId);
         model.addAttribute("allTypes", ClientType.values());
         return "p5-clients";
     }
