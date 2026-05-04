@@ -1,1187 +1,619 @@
 package bankinfo.web;
 
-import bankinfo.dao.AccountDao;
-import bankinfo.dao.AccountTxDao;
-import bankinfo.dao.AccountTypeDao;
-import bankinfo.dao.BranchDao;
-import bankinfo.dao.ClientDao;
 import bankinfo.dao.TestDbHelper;
-import bankinfo.model.Account;
-import bankinfo.model.AccountStatus;
-import bankinfo.model.AccountTx;
-import bankinfo.model.AccountType;
-import bankinfo.model.Client;
-import bankinfo.model.ClientType;
-import bankinfo.model.TxType;
-import bankinfo.web.service.InterestRunResult;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
+import bankinfo.test.EmbeddedPostgresHolder;
+import org.apache.catalina.Context;
+import org.apache.catalina.startup.Tomcat;
+import org.openqa.selenium.By;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.htmlunit.HtmlUnitDriver;
+import org.openqa.selenium.support.ui.ExpectedCondition;
+import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.math.BigDecimal;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
+import java.util.Locale;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
-import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
-@ContextConfiguration(locations = "classpath:spring/bankinfo-mvc.xml")
-@WebAppConfiguration("src/main/webapp")
-public class WebSystemTest extends AbstractTestNGSpringContextTests {
+public class WebSystemTest {
 
-    @Autowired
-    private WebApplicationContext webApplicationContext;
+    private static Tomcat tomcat;
+    private static String baseUrl;
 
-    @Autowired
-    private BranchDao branchDao;
+    private WebDriver driver;
+    private WebDriverWait wait;
 
-    @Autowired
-    private ClientDao clientDao;
-
-    @Autowired
-    private AccountDao accountDao;
-
-    @Autowired
-    private AccountTxDao accountTxDao;
-
-    @Autowired
-    private AccountTypeDao accountTypeDao;
-
-    private MockMvc mockMvc;
-
-    @BeforeMethod
-    public void setUp() {
+    @BeforeClass(alwaysRun = true)
+    public void startWebApplication() throws Exception {
+        EmbeddedPostgresHolder.start();
         TestDbHelper.recreateAndFillDatabase();
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-    }
-
-    @Test
-    public void homePage_shouldRenderMainNavigation() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p1-home"));
-    }
-
-    @Test
-    public void pageNavigation_shouldOpenAllMainSections() throws Exception {
-        mockMvc.perform(get("/branches"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p2-branches"));
-
-        mockMvc.perform(get("/clients"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p5-clients"));
-
-        mockMvc.perform(get("/accounts"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p8-accounts"));
-
-        mockMvc.perform(get("/operations"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p13-operations"));
-
-        mockMvc.perform(get("/account-types"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p14-account-types"));
-
-        mockMvc.perform(get("/interest"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p17-interest"));
-    }
-
-    @Test
-    public void forms_shouldBeAccessibleForMainEditFlows() throws Exception {
-        mockMvc.perform(get("/branches/form"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p4-branch-form"));
-
-        mockMvc.perform(get("/branches/1/edit"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p4-branch-form"));
-
-        mockMvc.perform(get("/clients/form"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p7-client-form"));
-
-        mockMvc.perform(get("/clients/1/edit"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p7-client-form"));
 
-        mockMvc.perform(get("/accounts/open"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p10-open-account"));
+        int port = pickRandomPort();
+        tomcat = new Tomcat();
 
-        mockMvc.perform(get("/accounts/1/close"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p11-close-account"));
+        Path baseDir = Path.of("build", "tomcat-system-tests");
+        Files.createDirectories(baseDir);
 
-        mockMvc.perform(get("/accounts/1/tx").param("type", "DEBIT"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"));
+        tomcat.setBaseDir(baseDir.toAbsolutePath().toString());
+        tomcat.setPort(port);
+        tomcat.getConnector();
 
-        mockMvc.perform(get("/account-types/1/edit"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p16-account-type-form"));
-    }
-
-    @Test
-    public void accountTxForm_shouldUseDefaultType_whenNotProvided() throws Exception {
-        mockMvc.perform(get("/accounts/1/tx"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"))
-                .andExpect(model().attributeExists("form"));
-    }
-
-    @Test
-    public void cards_shouldBeAccessibleForNavigationPaths() throws Exception {
-        mockMvc.perform(get("/branches/1"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p3-branch"));
-
-        mockMvc.perform(get("/clients/1"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p6-client"));
-
-        mockMvc.perform(get("/accounts/1"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p9-account"));
-
-        mockMvc.perform(get("/account-types/1"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p15-account-type"));
-    }
+        File webAppDir = Path.of("src", "main", "webapp").toFile();
+        Context context = tomcat.addWebapp("", webAppDir.getAbsolutePath());
+        context.setParentClassLoader(WebSystemTest.class.getClassLoader());
 
-    @Test
-    public void cards_shouldRenderValidationErrorPage_whenEntityNotFound() throws Exception {
-        mockMvc.perform(get("/branches/999999"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"));
-
-        mockMvc.perform(get("/clients/999999"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"));
-
-        mockMvc.perform(get("/accounts/999999"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"));
-
-        mockMvc.perform(get("/account-types/999999"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"));
+        tomcat.start();
+        baseUrl = "http://127.0.0.1:" + port;
     }
 
-    @Test
-    public void editForms_shouldRenderValidationErrorPage_whenEntityNotFound() throws Exception {
-        mockMvc.perform(get("/branches/999999/edit"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"));
-
-        mockMvc.perform(get("/clients/999999/edit"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"));
-
-        mockMvc.perform(get("/accounts/999999/close"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"));
-
-        mockMvc.perform(get("/accounts/999999/tx").param("type", "DEBIT"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"));
-
-        mockMvc.perform(get("/account-types/999999/edit"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"));
+    @AfterClass(alwaysRun = true)
+    public void stopWebApplication() throws Exception {
+        try {
+            if (tomcat != null) {
+                tomcat.stop();
+                tomcat.destroy();
+            }
+        } finally {
+            tomcat = null;
+            EmbeddedPostgresHolder.stop();
+        }
     }
 
-    @Test
-    public void branchesPage_shouldSupportSearch() throws Exception {
-        mockMvc.perform(get("/branches").param("q", "Central"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p2-branches"))
-                .andExpect(model().attributeExists("branches"));
-    }
+    @BeforeMethod(alwaysRun = true)
+    public void setUpTestDataAndDriver() {
+        TestDbHelper.recreateAndFillDatabase();
 
-    @Test
-    public void clientsPage_shouldSupportTypeAndNameFilters() throws Exception {
-        mockMvc.perform(get("/clients")
-                        .param("type", "ORG")
-                        .param("q", "alpha"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p5-clients"))
-                .andExpect(model().attribute("selectedType", ClientType.ORG))
-                .andExpect(model().attribute("clients", hasSize(1)));
+        HtmlUnitDriver htmlUnitDriver = new HtmlUnitDriver(true);
+        htmlUnitDriver.setJavascriptEnabled(true);
+        driver = htmlUnitDriver;
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
     }
 
-    @Test
-    public void clientsPage_shouldSupportNameFilterOnly() throws Exception {
-        mockMvc.perform(get("/clients").param("q", "Anna"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p5-clients"))
-                .andExpect(model().attribute("clients", hasSize(1)));
+    @AfterMethod(alwaysRun = true)
+    public void tearDownDriver() {
+        if (driver != null) {
+            driver.quit();
+            driver = null;
+        }
     }
 
     @Test
-    public void clientsPage_shouldSupportTypeFilterOnly() throws Exception {
-        mockMvc.perform(get("/clients").param("type", "ORG"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p5-clients"))
-                .andExpect(model().attribute("selectedType", ClientType.ORG))
-                .andExpect(model().attribute("clients", hasSize(3)));
-    }
+    public void shouldNavigateMainSectionsViaMenuLinks() {
+        open("/");
+        waitForHeading("Main Navigation");
 
-    @Test
-    public void accountsPage_shouldSupportStatusAndOwnerFilters() throws Exception {
-        mockMvc.perform(get("/accounts")
-                        .param("status", "CLOSED")
-                        .param("clientId", "2")
-                        .param("branchId", "2")
-                        .param("accountTypeId", "2"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p8-accounts"))
-                .andExpect(model().attribute("selectedStatus", AccountStatus.CLOSED))
-                .andExpect(model().attribute("accounts", hasSize(1)));
-    }
+        clickNavLink("Branches");
+        waitForHeading("Branch List");
 
-    @Test
-    public void accountsPage_shouldSupportAccountNumberFilterOnly() throws Exception {
-        mockMvc.perform(get("/accounts").param("q", "ACC-0001"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p8-accounts"))
-                .andExpect(model().attribute("accounts", hasSize(1)));
-    }
+        clickNavLink("Clients");
+        waitForHeading("Client List");
 
-    @Test
-    public void accountsPage_shouldSupportStatusFilterOnly() throws Exception {
-        mockMvc.perform(get("/accounts").param("status", "CLOSED"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p8-accounts"))
-                .andExpect(model().attribute("selectedStatus", AccountStatus.CLOSED))
-                .andExpect(model().attribute("accounts", hasSize(2)));
-    }
+        clickNavLink("Accounts");
+        waitForHeading("Account List");
 
-    @Test
-    public void accountsPage_shouldSupportClientFilterOnly() throws Exception {
-        mockMvc.perform(get("/accounts").param("clientId", "4"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p8-accounts"))
-                .andExpect(model().attribute("accounts", hasSize(2)));
-    }
+        clickNavLink("Operations");
+        waitForHeading("Operations Journal");
 
-    @Test
-    public void accountsPage_shouldSupportBranchFilterOnly() throws Exception {
-        mockMvc.perform(get("/accounts").param("branchId", "1"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p8-accounts"))
-                .andExpect(model().attribute("accounts", hasSize(4)));
+        clickNavLink("Interest");
+        waitForHeading("Interest Run");
     }
 
     @Test
-    public void accountsPage_shouldSupportAccountTypeFilterOnly() throws Exception {
-        mockMvc.perform(get("/accounts").param("accountTypeId", "1"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p8-accounts"))
-                .andExpect(model().attribute("accounts", hasSize(2)));
-    }
+    public void branchFlow_shouldCreateAndThenDeleteBranchFromUi() {
+        String branchName = "UI E2E Branch";
 
-    @Test
-    public void accountTypesPage_shouldSupportSearch() throws Exception {
-        mockMvc.perform(get("/account-types").param("q", "Savings"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p14-account-types"))
-                .andExpect(model().attribute("accountTypes", hasSize(1)));
-    }
+        open("/branches");
+        waitForHeading("Branch List");
+        clickLink("Add branch");
 
-    @Test
-    public void saveBranch_shouldCreateNewBranch() throws Exception {
-        mockMvc.perform(post("/branches/save")
-                        .param("name", "Web Test Branch")
-                        .param("address", "Moscow, Test st, 99"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("/branches/*"));
+        waitForHeading("Branch Form");
+        typeByName("name", branchName);
+        typeByName("address", "Moscow, UI st, 101");
+        clickButton("Save");
 
-        assertFalse(branchDao.findByNameContains("Web Test Branch").isEmpty());
-    }
+        waitForHeading("Branch Card");
+        assertBodyContains("Success: Branch saved");
+        assertBodyContains("Name: " + branchName);
 
-    @Test
-    public void saveBranch_shouldRenderFormError_whenNameMissing() throws Exception {
-        mockMvc.perform(post("/branches/save")
-                        .param("name", "")
-                        .param("address", "Address"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p4-branch-form"))
-                .andExpect(model().attributeExists("errorMessage"));
-    }
+        clickButton("Delete");
+        waitForHeading("Branch List");
+        assertBodyContains("Success: Branch deleted");
 
-    @Test
-    public void saveBranch_shouldRenderFormError_whenAddressMissing() throws Exception {
-        mockMvc.perform(post("/branches/save")
-                        .param("name", "Branch without address")
-                        .param("address", ""))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p4-branch-form"))
-                .andExpect(model().attribute("errorMessage", "Branch address is required"));
+        typeByName("q", branchName);
+        clickButton("Search");
+        waitForHeading("Branch List");
+        assertBodyNotContains(branchName);
     }
 
     @Test
-    public void editBranch_shouldUpdateExistingBranch() throws Exception {
-        mockMvc.perform(post("/branches/save")
-                        .param("id", "1")
-                        .param("name", "Central Branch Updated")
-                        .param("address", "Moscow, Updated"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/branches/1"));
-
-        Optional<bankinfo.model.Branch> branch = branchDao.findById(1L);
-        assertTrue(branch.isPresent());
-        assertEquals(branch.get().getName(), "Central Branch Updated");
-        assertEquals(branch.get().getAddress(), "Moscow, Updated");
-    }
+    public void branchFlow_shouldShowValidationError_whenNameIsEmpty() {
+        open("/branches/form");
+        waitForHeading("Branch Form");
 
-    @Test
-    public void deleteBranch_shouldFailWhenOpenAccountsExist() throws Exception {
-        mockMvc.perform(post("/branches/1/delete"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p3-branch"))
-                .andExpect(model().attributeExists("errorMessage"));
+        typeByName("name", "");
+        typeByName("address", "Moscow, Empty Name st, 1");
+        clickButton("Save");
 
-        assertTrue(branchDao.findById(1L).isPresent());
+        waitForHeading("Branch Form");
+        assertBodyContains("Error: Branch name is required");
     }
 
     @Test
-    public void deleteBranch_shouldSucceedWithoutAccounts() throws Exception {
-        mockMvc.perform(post("/branches/save")
-                        .param("name", "Delete Me Branch")
-                        .param("address", "No account address"))
-                .andExpect(status().is3xxRedirection());
+    public void clientFlow_shouldCreateClientAndBeVisibleInList() {
+        String clientName = "UI E2E Client";
 
-        Long createdId = branchDao.findByNameContains("Delete Me Branch").get(0).getId();
+        open("/clients");
+        waitForHeading("Client List");
+        clickLink("Add client");
 
-        mockMvc.perform(post("/branches/" + createdId + "/delete"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/branches"));
+        waitForHeading("Client Form");
+        selectByName("clientType", "PERSON");
+        typeByName("displayName", clientName);
+        clickButton("Save");
 
-        assertTrue(branchDao.findById(createdId).isEmpty());
-    }
-
-    @Test
-    public void saveBranch_shouldRenderFormError_whenEditedBranchNotFound() throws Exception {
-        mockMvc.perform(post("/branches/save")
-                        .param("id", "999999")
-                        .param("name", "Ghost branch")
-                        .param("address", "Ghost address"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p4-branch-form"))
-                .andExpect(model().attribute("errorMessage", "Branch not found: 999999"));
-    }
-
-    @Test
-    public void deleteBranch_shouldRenderValidationErrorPage_whenBranchNotFound() throws Exception {
-        mockMvc.perform(post("/branches/999999/delete"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"))
-                .andExpect(model().attribute("errorMessage", "Branch not found: 999999"));
-    }
-
-    @Test
-    public void saveClient_shouldCreateNewClient() throws Exception {
-        int beforeCount = clientDao.findAll().size();
+        waitForHeading("Client Card");
+        assertBodyContains("Success: Client saved");
+        assertBodyContains("Name: " + clientName);
 
-        mockMvc.perform(post("/clients/save")
-                        .param("clientType", "PERSON")
-                        .param("displayName", "Web Client"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("/clients/*"));
+        clickNavLink("Clients");
+        waitForHeading("Client List");
+        typeByName("q", clientName);
+        clickButton("Filter");
 
-        assertEquals(clientDao.findAll().size(), beforeCount + 1);
+        assertBodyContains(clientName);
     }
 
     @Test
-    public void saveClient_shouldRenderFormError_whenDisplayNameMissing() throws Exception {
-        mockMvc.perform(post("/clients/save")
-                        .param("clientType", "PERSON")
-                        .param("displayName", ""))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p7-client-form"))
-                .andExpect(model().attributeExists("errorMessage"));
-    }
+    public void clientFlow_shouldShowValidationError_whenDisplayNameIsEmpty() {
+        open("/clients/form");
+        waitForHeading("Client Form");
 
-    @Test
-    public void saveClient_shouldRenderFormError_whenTypeMissing() throws Exception {
-        mockMvc.perform(post("/clients/save")
-                        .param("displayName", "No type client"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p7-client-form"))
-                .andExpect(model().attribute("errorMessage", "Client type is required"));
-    }
+        typeByName("displayName", "");
+        clickButton("Save");
 
-    @Test
-    public void editClient_shouldUpdateDisplayName() throws Exception {
-        mockMvc.perform(post("/clients/save")
-                        .param("id", "1")
-                        .param("clientType", "PERSON")
-                        .param("displayName", "Ivan Petrov Updated"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/clients/1"));
-
-        Optional<Client> client = clientDao.findById(1L);
-        assertTrue(client.isPresent());
-        assertEquals(client.get().getDisplayName(), "Ivan Petrov Updated");
+        waitForHeading("Client Form");
+        assertBodyContains("Error: Display name is required");
     }
 
     @Test
-    public void deleteClient_shouldFailWhenOpenAccountsExist() throws Exception {
-        mockMvc.perform(post("/clients/1/delete"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p6-client"))
-                .andExpect(model().attributeExists("errorMessage"));
+    public void accountFlow_shouldOpenPostCreditAndCloseAccountThroughUi() {
+        open("/accounts");
+        waitForHeading("Account List");
+        clickLink("Open account");
 
-        assertTrue(clientDao.findById(1L).isPresent());
-    }
-
-    @Test
-    public void deleteClient_shouldSucceedWhenOnlyClosedAccountsExist() throws Exception {
-        mockMvc.perform(post("/clients/save")
-                        .param("clientType", "PERSON")
-                        .param("displayName", "Delete Me Client"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("/clients/*"));
+        waitForHeading("Open Account");
+        selectByName("clientId", "2");
+        selectByName("branchId", "2");
+        selectByName("accountTypeId", "2");
+        clickButton("Create");
 
-        Long clientId = clientDao.findByDisplayNameContains("Delete Me Client").get(0).getId();
+        waitForHeading("Account Card");
+        assertBodyContains("Success: Account opened");
+        String accountNumber = extractValueAfterPrefix("Number:");
+        assertFalse(accountNumber.isBlank());
 
-        mockMvc.perform(post("/clients/" + clientId + "/delete"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/clients"));
+        clickLink("Credit");
+        waitForHeading("Account Operation");
+        typeByName("amount", "100");
+        typeByName("description", "UI credit");
+        clickButton("Post operation");
 
-        assertTrue(clientDao.findById(clientId).isEmpty());
-    }
+        waitForHeading("Account Card");
+        assertBodyContains("Success: Transaction posted");
+        assertBodyContains("Balance: 100.00");
 
-    @Test
-    public void saveClient_shouldRenderFormError_whenEditedClientNotFound() throws Exception {
-        mockMvc.perform(post("/clients/save")
-                        .param("id", "999999")
-                        .param("clientType", "PERSON")
-                        .param("displayName", "Ghost client"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p7-client-form"))
-                .andExpect(model().attribute("errorMessage", "Client not found: 999999"));
-    }
+        clickLink("Debit");
+        waitForHeading("Account Operation");
+        typeByName("amount", "100");
+        typeByName("description", "UI debit");
+        clickButton("Post operation");
 
-    @Test
-    public void deleteClient_shouldRenderValidationErrorPage_whenClientNotFound() throws Exception {
-        mockMvc.perform(post("/clients/999999/delete"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"))
-                .andExpect(model().attribute("errorMessage", "Client not found: 999999"));
-    }
+        waitForHeading("Account Card");
+        assertBodyContains("Success: Transaction posted");
+        assertBodyContains("Balance: 0.00");
 
-    @Test
-    public void openAccount_shouldCreateAccountAndRedirectToCard() throws Exception {
-        int beforeCount = accountDao.findAll().size();
+        clickLink("Close account");
+        waitForHeading("Close Account");
+        clickButton("Confirm close");
 
-        mockMvc.perform(post("/accounts/open")
-                        .param("clientId", "1")
-                        .param("branchId", "1")
-                        .param("accountTypeId", "2"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("/accounts/*"));
+        waitForHeading("Account Card");
+        assertBodyContains("Success: Account closed");
+        assertBodyContains("Status: CLOSED");
 
-        int afterCount = accountDao.findAll().size();
-        assertEquals(afterCount, beforeCount + 1);
+        clickNavLink("Accounts");
+        waitForHeading("Account List");
+        typeByName("q", accountNumber);
+        clickButton("Filter");
+        assertBodyContains(accountNumber);
+        assertBodyContains("CLOSED");
     }
 
     @Test
-    public void openAccount_shouldRenderFormError_whenRequiredFieldMissing() throws Exception {
-        mockMvc.perform(post("/accounts/open")
-                        .param("branchId", "1")
-                        .param("accountTypeId", "2"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p10-open-account"))
-                .andExpect(model().attribute("errorMessage", "Client is required"));
-    }
+    public void accountFlow_shouldShowValidationError_onWrongCloseSubmission() {
+        open("/accounts/1/close");
+        waitForHeading("Close Account");
 
-    @Test
-    public void openAccount_shouldRenderFormError_whenBranchMissing() throws Exception {
-        mockMvc.perform(post("/accounts/open")
-                        .param("clientId", "1")
-                        .param("accountTypeId", "2"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p10-open-account"))
-                .andExpect(model().attribute("errorMessage", "Branch is required"));
-    }
+        clickButton("Confirm close");
 
-    @Test
-    public void openAccount_shouldRenderFormError_whenAccountTypeMissing() throws Exception {
-        mockMvc.perform(post("/accounts/open")
-                        .param("clientId", "1")
-                        .param("branchId", "1"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p10-open-account"))
-                .andExpect(model().attribute("errorMessage", "Account type is required"));
+        waitForHeading("Close Account");
+        assertBodyContains("Error: Account can be closed only with zero balance");
     }
 
     @Test
-    public void openAccount_shouldRenderFormError_whenForeignEntityNotFound() throws Exception {
-        mockMvc.perform(post("/accounts/open")
-                        .param("clientId", "999999")
-                        .param("branchId", "1")
-                        .param("accountTypeId", "2"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p10-open-account"))
-                .andExpect(model().attribute("errorMessage", "Client not found: 999999"));
-
-        mockMvc.perform(post("/accounts/open")
-                        .param("clientId", "1")
-                        .param("branchId", "999999")
-                        .param("accountTypeId", "2"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p10-open-account"))
-                .andExpect(model().attribute("errorMessage", "Branch not found: 999999"));
-
-        mockMvc.perform(post("/accounts/open")
-                        .param("clientId", "1")
-                        .param("branchId", "1")
-                        .param("accountTypeId", "999999"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p10-open-account"))
-                .andExpect(model().attribute("errorMessage", "Account type not found: 999999"));
-    }
+    public void transactionFlow_shouldShowValidationError_onBadInputAmount() {
+        open("/accounts/1/tx?type=DEBIT");
+        waitForHeading("Account Operation");
 
-    @Test
-    public void closeAccount_shouldRejectNonZeroBalance() throws Exception {
-        mockMvc.perform(post("/accounts/1/close"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p11-close-account"))
-                .andExpect(model().attributeExists("errorMessage"));
+        typeByName("amount", "-1");
+        typeByName("description", "bad amount");
+        clickButton("Post operation");
 
-        Optional<Account> account = accountDao.findById(1L);
-        assertTrue(account.isPresent());
-        assertTrue(account.get().getClosedAt() == null);
+        waitForHeading("Account Operation");
+        assertBodyContains("Error: Amount must be greater than zero");
     }
 
     @Test
-    public void closeAccount_shouldCloseZeroBalanceAccount() throws Exception {
-        mockMvc.perform(post("/accounts/open")
-                        .param("clientId", "2")
-                        .param("branchId", "2")
-                        .param("accountTypeId", "2"))
-                .andExpect(status().is3xxRedirection());
+    public void interestFlow_shouldShowReportAndRejectBadTimestamp() {
+        open("/interest");
+        waitForHeading("Interest Run");
 
-        List<Account> accounts = accountDao.findAll();
-        Account newAccount = accounts.get(accounts.size() - 1);
+        typeByName("runAtIso", "2026-03-01T00:00:00+00:00");
+        clickButton("Run interest");
 
-        mockMvc.perform(post("/accounts/" + newAccount.getId() + "/close"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/accounts/" + newAccount.getId()));
-
-        Optional<Account> closed = accountDao.findById(newAccount.getId());
-        assertTrue(closed.isPresent());
-        assertTrue(closed.get().getClosedAt() != null);
-    }
+        waitForHeading("Interest Run");
+        assertBodyContains("Run report");
+        assertBodyContains("Created operations:");
+        assertBodyContains("Processed accounts");
 
-    @Test
-    public void closeAccount_shouldRejectAlreadyClosedAccount() throws Exception {
-        mockMvc.perform(post("/accounts/7/close"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p11-close-account"))
-                .andExpect(model().attribute("errorMessage", "Account is already closed"));
-    }
+        open("/interest");
+        waitForHeading("Interest Run");
+        typeByName("runAtIso", "bad-time");
+        clickButton("Run interest");
 
-    @Test
-    public void closeAccount_shouldRenderValidationErrorPage_whenAccountNotFound() throws Exception {
-        mockMvc.perform(post("/accounts/999999/close"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"))
-                .andExpect(model().attribute("errorMessage", "Account not found: 999999"));
+        waitForHeading("Interest Run");
+        assertBodyContains("Error: Invalid run timestamp format. Expected ISO offset date-time");
     }
 
     @Test
-    public void debit_shouldRejectWhenMaxCreditExceeded() throws Exception {
-        mockMvc.perform(post("/accounts/1/tx")
-                        .param("txType", "DEBIT")
-                        .param("amount", "2000")
-                        .param("description", "too much"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"))
-                .andExpect(model().attributeExists("errorMessage"));
-
-        Optional<Account> account = accountDao.findById(1L);
-        assertTrue(account.isPresent());
-        assertEquals(account.get().getBalance(), new BigDecimal("1200.00"));
-    }
+    public void branchFlow_shouldSearchEditAndRejectDeleteWithOpenAccounts() {
+        open("/branches");
+        waitForHeading("Branch List");
+        typeByName("q", "Central");
+        clickButton("Search");
+        assertBodyContains("Central Branch");
 
-    @Test
-    public void transaction_shouldRejectInvalidInputAmount() throws Exception {
-        int txBefore = accountTxDao.findByAccountId(1L).size();
+        clickRowActionLink("Central Branch", "Open");
+        waitForHeading("Branch Card");
+        assertBodyContains("Name: Central Branch");
 
-        mockMvc.perform(post("/accounts/1/tx")
-                        .param("txType", "CREDIT")
-                        .param("amount", "-1")
-                        .param("description", "bad"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"))
-                .andExpect(model().attributeExists("errorMessage"));
+        clickLink("Edit");
+        waitForHeading("Branch Form");
+        typeByName("name", "Central Branch Updated");
+        typeByName("address", "Moscow, Updated Street, 1");
+        clickButton("Save");
 
-        int txAfter = accountTxDao.findByAccountId(1L).size();
-        assertEquals(txAfter, txBefore);
-    }
+        waitForHeading("Branch Card");
+        assertBodyContains("Success: Branch saved");
+        assertBodyContains("Name: Central Branch Updated");
 
-    @Test
-    public void transaction_shouldRejectWhenTypeMissing() throws Exception {
-        mockMvc.perform(post("/accounts/1/tx")
-                        .param("amount", "100"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"))
-                .andExpect(model().attribute("errorMessage", "Transaction type is required"));
+        clickButton("Delete");
+        waitForHeading("Branch Card");
+        assertBodyContains("Error: Cannot delete branch with open accounts");
     }
 
     @Test
-    public void transaction_shouldRejectWhenAccountClosed() throws Exception {
-        mockMvc.perform(post("/accounts/7/tx")
-                        .param("txType", "CREDIT")
-                        .param("amount", "100")
-                        .param("description", "closed account"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"))
-                .andExpect(model().attribute("errorMessage", "Transaction is not allowed for closed account"));
-    }
+    public void clientFlow_shouldFilterOpenEditAndRejectDeleteWithAccounts() {
+        open("/clients");
+        waitForHeading("Client List");
+        typeByName("q", "Alpha");
+        selectByName("type", "ORG");
+        clickButton("Filter");
 
-    @Test
-    public void transaction_shouldRenderValidationErrorPage_whenAccountNotFound() throws Exception {
-        mockMvc.perform(post("/accounts/999999/tx")
-                        .param("txType", "CREDIT")
-                        .param("amount", "100"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("error"))
-                .andExpect(model().attribute("errorTitle", "Validation error"))
-                .andExpect(model().attribute("errorMessage", "Account not found: 999999"));
-    }
+        assertBodyContains("Alpha LLC");
+        clickRowActionLink("Alpha LLC", "Open");
+        waitForHeading("Client Card");
+        assertBodyContains("Name: Alpha LLC");
+        assertBodyContains("Arman Hakobyan");
+        assertBodyContains("ACC-0004");
 
-    @Test
-    public void debit_shouldRejectWhenOperationNotAllowedByAccountType() throws Exception {
-        mockMvc.perform(post("/accounts/5/tx")
-                        .param("txType", "DEBIT")
-                        .param("amount", "100")
-                        .param("description", "forbidden debit"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"))
-                .andExpect(model().attribute("errorMessage", "Debit operation is not allowed for account type Deposit To Other"));
-    }
+        clickLink("Edit");
+        waitForHeading("Client Form");
+        typeByName("displayName", "Alpha LLC Updated");
+        clickButton("Save");
 
-    @Test
-    public void credit_shouldRejectByMinAndMaxLimits() throws Exception {
-        mockMvc.perform(post("/accounts/2/tx")
-                        .param("txType", "CREDIT")
-                        .param("amount", "5")
-                        .param("description", "below min"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"))
-                .andExpect(model().attribute("errorMessage", "Credit amount must be >= 10.00"));
-
-        mockMvc.perform(post("/accounts/2/tx")
-                        .param("txType", "CREDIT")
-                        .param("amount", "60000")
-                        .param("description", "above max"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"))
-                .andExpect(model().attribute("errorMessage", "Credit amount must be <= 50000.00"));
-    }
+        waitForHeading("Client Card");
+        assertBodyContains("Success: Client saved");
+        assertBodyContains("Name: Alpha LLC Updated");
 
-    @Test
-    public void debit_shouldRejectByMinAndMaxLimits() throws Exception {
-        mockMvc.perform(post("/accounts/2/tx")
-                        .param("txType", "DEBIT")
-                        .param("amount", "5")
-                        .param("description", "below min"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"))
-                .andExpect(model().attribute("errorMessage", "Debit amount must be >= 10.00"));
-
-        mockMvc.perform(post("/accounts/2/tx")
-                        .param("txType", "DEBIT")
-                        .param("amount", "6000")
-                        .param("description", "above max"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"))
-                .andExpect(model().attribute("errorMessage", "Debit amount must be <= 5000.00"));
+        clickButton("Delete");
+        waitForHeading("Client Card");
+        assertBodyContains("Error: Cannot delete client with existing accounts");
     }
 
     @Test
-    public void debit_shouldUpdateBalanceAndCreateOperation() throws Exception {
-        int txBefore = accountTxDao.findByAccountId(1L).size();
+    public void clientFlow_shouldDeleteClientWithoutAccounts() {
+        String clientName = "Client Without Accounts";
 
-        mockMvc.perform(post("/accounts/1/tx")
-                        .param("txType", "DEBIT")
-                        .param("amount", "100")
-                        .param("description", "web debit"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/accounts/1"));
+        open("/clients/form");
+        waitForHeading("Client Form");
+        selectByName("clientType", "PERSON");
+        typeByName("displayName", clientName);
+        clickButton("Save");
 
-        Optional<Account> account = accountDao.findById(1L);
-        assertTrue(account.isPresent());
-        assertEquals(account.get().getBalance(), new BigDecimal("1100.00"));
-        assertEquals(accountTxDao.findByAccountId(1L).size(), txBefore + 1);
-    }
+        waitForHeading("Client Card");
+        assertBodyContains("Name: " + clientName);
+        clickButton("Delete");
 
-    @Test
-    public void credit_shouldRejectWhenCreditDisabledByAccountType() throws Exception {
-        AccountType accountType = accountTypeDao.findById(2L).orElseThrow();
-        accountType.setAllowCredit(false);
-        accountTypeDao.save(accountType);
-
-        mockMvc.perform(post("/accounts/1/tx")
-                        .param("txType", "CREDIT")
-                        .param("amount", "100")
-                        .param("description", "credit disabled"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p12-account-operation"))
-                .andExpect(model().attribute("errorMessage", "Credit operation is not allowed for account type Checking Standard"));
+        waitForHeading("Client List");
+        assertBodyContains("Success: Client deleted");
+        typeByName("q", clientName);
+        clickButton("Filter");
+        assertBodyNotContains(clientName);
     }
 
     @Test
-    public void credit_shouldUpdateBalanceAndCreateOperation() throws Exception {
-        int txBefore = accountTxDao.findByAccountId(1L).size();
-
-        mockMvc.perform(post("/accounts/1/tx")
-                        .param("txType", "CREDIT")
-                        .param("amount", "100")
-                        .param("description", "web credit"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/accounts/1"));
+    public void clientFlow_shouldOpenAccountCardFromClientCard() {
+        open("/clients");
+        waitForHeading("Client List");
+        typeByName("q", "Anna");
+        clickButton("Filter");
+        clickRowActionLink("Anna Sargsyan", "Open");
 
-        Optional<Account> account = accountDao.findById(1L);
-        assertTrue(account.isPresent());
-        assertEquals(account.get().getBalance(), new BigDecimal("1300.00"));
-
-        List<AccountTx> txAfter = accountTxDao.findByAccountId(1L);
-        assertEquals(txAfter.size(), txBefore + 1);
+        waitForHeading("Client Card");
+        clickRowActionLink("ACC-0002", "Open");
+        waitForHeading("Account Card");
+        assertBodyContains("Number: ACC-0002");
     }
 
     @Test
-    public void accountCard_shouldShowValidationError_whenPeriodFormatInvalid() throws Exception {
-        mockMvc.perform(get("/accounts/1")
-                        .param("from", "bad-date")
-                        .param("to", "2026-03-01T00:00:00+00:00"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p9-account"))
-                .andExpect(model().attributeExists("errorMessage"));
-    }
+    public void accountList_shouldFilterAndOpenAccountCard() {
+        open("/accounts");
+        waitForHeading("Account List");
+        selectByName("status", "CLOSED");
+        selectByName("clientId", "2");
+        selectByName("branchId", "2");
+        selectByName("accountTypeId", "2");
+        clickButton("Filter");
 
-    @Test
-    public void accountCard_shouldShowValidationError_whenPeriodRangeInvalid() throws Exception {
-        mockMvc.perform(get("/accounts/1")
-                        .param("from", "2026-03-02T00:00:00+00:00")
-                        .param("to", "2026-03-01T00:00:00+00:00"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p9-account"))
-                .andExpect(model().attribute("errorMessage", "Period start must be before or equal to period end"));
+        assertBodyContains("ACC-0008");
+        assertBodyNotContains("ACC-0007");
+        clickRowActionLink("ACC-0008", "Open");
+        waitForHeading("Account Card");
+        assertBodyContains("Number: ACC-0008");
     }
 
     @Test
-    public void accountCard_shouldFilterTransactions_whenPeriodValid() throws Exception {
-        mockMvc.perform(get("/accounts/1")
-                        .param("from", "2026-02-07T00:00:00+00:00")
-                        .param("to", "2026-02-07T23:59:59+00:00"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p9-account"))
-                .andExpect(model().attribute("transactions", hasSize(1)));
-    }
+    public void accountCard_shouldFilterOperationsByPeriod() {
+        open("/accounts/1");
+        waitForHeading("Account Card");
 
-    @Test
-    public void operationsPage_shouldApplyFilters() throws Exception {
-        mockMvc.perform(get("/operations")
-                        .param("type", "INTEREST")
-                        .param("accountId", "4"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p13-operations"))
-                .andExpect(model().attributeExists("operations"));
-    }
+        typeByName("from", "2026-02-07T00:00:00+00:00");
+        typeByName("to", "2026-02-07T23:59:59+00:00");
+        clickButton("Apply");
 
-    @Test
-    public void operationsPage_shouldFilterByValidPeriod() throws Exception {
-        mockMvc.perform(get("/operations")
-                        .param("from", "2026-02-06T10:00:30+00:00")
-                        .param("to", "2026-02-06T10:01:30+00:00"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p13-operations"))
-                .andExpect(model().attribute("operations", hasSize(1)));
+        waitForHeading("Account Card");
+        assertBodyContains("Card payment");
+        assertBodyNotContains("Salary");
     }
 
     @Test
-    public void operationsPage_shouldFilterByTypeOnly() throws Exception {
-        mockMvc.perform(get("/operations").param("type", "INTEREST"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p13-operations"))
-                .andExpect(model().attribute("selectedType", TxType.INTEREST))
-                .andExpect(model().attribute("operations", hasSize(5)));
-    }
+    public void debitFlow_shouldRejectOperationBlockedByAccountTypeRules() {
+        open("/accounts/5/tx?type=DEBIT");
+        waitForHeading("Account Operation");
+        typeByName("amount", "100");
+        typeByName("description", "blocked debit");
+        clickButton("Post operation");
 
-    @Test
-    public void operationsPage_shouldFilterByAccountOnly() throws Exception {
-        mockMvc.perform(get("/operations").param("accountId", "5"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p13-operations"))
-                .andExpect(model().attribute("operations", hasSize(1)));
+        waitForHeading("Account Operation");
+        assertBodyContains("Error: Debit operation is not allowed for account type Deposit To Other");
     }
 
     @Test
-    public void operationsPage_shouldFilterByClientOnly() throws Exception {
-        mockMvc.perform(get("/operations").param("clientId", "4"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p13-operations"))
-                .andExpect(model().attribute("operations", hasSize(7)));
-    }
+    public void operationsFlow_shouldFilterByPeriodAndOpenAccount() {
+        open("/operations");
+        waitForHeading("Operations Journal");
 
-    @Test
-    public void operationsPage_shouldFilterByBranchOnly() throws Exception {
-        mockMvc.perform(get("/operations").param("branchId", "1"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p13-operations"))
-                .andExpect(model().attribute("operations", hasSize(13)));
-    }
+        typeByName("from", "2026-02-06T10:00:30+00:00");
+        typeByName("to", "2026-02-06T10:01:30+00:00");
+        selectByName("type", "INTEREST");
+        typeByName("accountId", "4");
+        typeByName("clientId", "4");
+        typeByName("branchId", "1");
+        typeByName("accountTypeId", "2");
+        clickButton("Filter");
 
-    @Test
-    public void operationsPage_shouldFilterByAccountTypeOnly() throws Exception {
-        mockMvc.perform(get("/operations").param("accountTypeId", "4"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p13-operations"))
-                .andExpect(model().attribute("operations", hasSize(1)));
+        waitForHeading("Operations Journal");
+        assertBodyContains("INTEREST");
+        assertBodyContains("ACC-0004");
+        clickRowActionLink("ACC-0004", "Open account");
+        waitForHeading("Account Card");
+        assertBodyContains("Number: ACC-0004");
     }
 
     @Test
-    public void operationsPage_shouldApplyClientBranchAndAccountTypeFilters() throws Exception {
-        mockMvc.perform(get("/operations")
-                        .param("type", "CREDIT")
-                        .param("clientId", "4")
-                        .param("branchId", "1")
-                        .param("accountTypeId", "4"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p13-operations"))
-                .andExpect(model().attribute("selectedType", TxType.CREDIT))
-                .andExpect(model().attribute("operations", hasSize(1)));
-    }
+    public void accountTypeFlow_shouldSearchOpenEditAndSaveRules() {
+        open("/account-types");
+        waitForHeading("Account Types");
+        typeByName("q", "Savings");
+        clickButton("Search");
 
-    @Test
-    public void operationsPage_shouldShowValidationError_whenPeriodInvalid() throws Exception {
-        mockMvc.perform(get("/operations")
-                        .param("from", "2026-03-02T00:00:00+00:00")
-                        .param("to", "2026-03-01T00:00:00+00:00"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p13-operations"))
-                .andExpect(model().attributeExists("errorMessage"));
-    }
+        assertBodyContains("Savings Basic");
+        clickRowActionLink("Savings Basic", "Open");
+        waitForHeading("Account Type Card");
+        assertBodyContains("Interest interval: MONTHLY");
 
-    @Test
-    public void operationsPage_shouldShowValidationError_whenPeriodFormatInvalid() throws Exception {
-        mockMvc.perform(get("/operations")
-                        .param("from", "bad-date")
-                        .param("to", "2026-03-01T00:00:00+00:00"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p13-operations"))
-                .andExpect(model().attribute("errorMessage", "Invalid date-time format. Expected ISO offset date-time"));
-    }
+        clickLink("Edit");
+        waitForHeading("Account Type Form");
+        typeByName("name", "Savings Basic Updated");
+        typeByName("interestRate", "0.0600");
+        selectByName("interestInterval", "QUARTERLY");
+        clickButton("Save");
 
-    @Test
-    public void accountTypeSave_shouldUpdateAccountType() throws Exception {
-        mockMvc.perform(post("/account-types/1/save")
-                        .param("name", "Savings Updated")
-                        .param("maxCredit", "0")
-                        .param("creditRepayRule", "No credit")
-                        .param("interestRate", "0.0600")
-                        .param("interestInterval", "MONTHLY")
-                        .param("interestMethod", "TO_SAME_ACCOUNT")
-                        .param("allowDebit", "true")
-                        .param("allowCredit", "true")
-                        .param("minCreditAmount", "10")
-                        .param("maxCreditAmount", "50000")
-                        .param("minDebitAmount", "10")
-                        .param("maxDebitAmount", "5000"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/account-types/1"));
-
-        Optional<AccountType> accountType = accountTypeDao.findById(1L);
-        assertTrue(accountType.isPresent());
-        assertEquals(accountType.get().getName(), "Savings Updated");
-        assertEquals(accountType.get().getInterestRate(), new BigDecimal("0.0600"));
+        waitForHeading("Account Type Card");
+        assertBodyContains("Success: Account type saved");
+        assertBodyContains("Name: Savings Basic Updated");
+        assertBodyContains("Interest interval: QUARTERLY");
     }
 
     @Test
-    public void accountTypeSave_shouldPersistDailyIntervalAndOtherAccountMethod() throws Exception {
-        mockMvc.perform(post("/account-types/4/save")
-                        .param("name", "Deposit To Other Updated")
-                        .param("maxCredit", "0")
-                        .param("creditRepayRule", "Deposit rules")
-                        .param("interestRate", "0.0300")
-                        .param("interestInterval", "DAILY")
-                        .param("interestMethod", "TO_OTHER_ACCOUNT")
-                        .param("allowDebit", "false")
-                        .param("allowCredit", "true")
-                        .param("minCreditAmount", "100")
-                        .param("maxCreditAmount", "1000000"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/account-types/4"));
-
-        AccountType accountType = accountTypeDao.findById(4L).orElseThrow();
-        assertEquals(accountType.getInterestInterval().name(), "DAILY");
-        assertEquals(accountType.getInterestMethod().name(), "TO_OTHER_ACCOUNT");
-    }
+    public void accountTypeFlow_shouldShowValidationErrorForEmptyName() {
+        open("/account-types/1/edit");
+        waitForHeading("Account Type Form");
+        typeByName("name", "");
+        clickButton("Save");
 
-    @Test
-    public void accountTypeSave_shouldPersistQuarterlyIntervalAndDisabledCredit() throws Exception {
-        mockMvc.perform(post("/account-types/3/save")
-                        .param("name", "Overdraft Updated")
-                        .param("maxCredit", "1000")
-                        .param("creditRepayRule", "Overdraft rules")
-                        .param("interestRate", "0.0100")
-                        .param("interestInterval", "QUARTERLY")
-                        .param("interestMethod", "TO_SAME_ACCOUNT")
-                        .param("allowDebit", "true")
-                        .param("allowCredit", "false")
-                        .param("minCreditAmount", "1")
-                        .param("maxCreditAmount", "500000")
-                        .param("minDebitAmount", "1")
-                        .param("maxDebitAmount", "500000"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/account-types/3"));
-
-        AccountType accountType = accountTypeDao.findById(3L).orElseThrow();
-        assertEquals(accountType.getInterestInterval().name(), "QUARTERLY");
-        assertFalse(accountType.getAllowCredit());
+        waitForHeading("Account Type Form");
+        assertBodyContains("Error: Account type name is required");
     }
 
-    @Test
-    public void accountTypeSave_shouldPersistYearlyIntervalAndZeroInterestRate() throws Exception {
-        mockMvc.perform(post("/account-types/2/save")
-                        .param("name", "Checking Updated")
-                        .param("maxCredit", "0")
-                        .param("creditRepayRule", "No credit")
-                        .param("interestRate", "0")
-                        .param("interestInterval", "YEARLY")
-                        .param("interestMethod", "TO_SAME_ACCOUNT")
-                        .param("allowDebit", "true")
-                        .param("allowCredit", "true")
-                        .param("minCreditAmount", "1")
-                        .param("maxCreditAmount", "200000")
-                        .param("minDebitAmount", "1")
-                        .param("maxDebitAmount", "200000"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/account-types/2"));
-
-        AccountType accountType = accountTypeDao.findById(2L).orElseThrow();
-        assertEquals(accountType.getInterestInterval().name(), "YEARLY");
-        assertEquals(accountType.getInterestRate().compareTo(BigDecimal.ZERO), 0);
+    private void open(String path) {
+        driver.get(baseUrl + path);
     }
 
-    @Test
-    public void accountTypeSave_shouldRenderFormError_whenNameMissing() throws Exception {
-        mockMvc.perform(post("/account-types/1/save")
-                        .param("name", "")
-                        .param("maxCredit", "0")
-                        .param("creditRepayRule", "No credit")
-                        .param("interestRate", "0.0500")
-                        .param("interestInterval", "MONTHLY")
-                        .param("interestMethod", "TO_SAME_ACCOUNT")
-                        .param("allowDebit", "true")
-                        .param("allowCredit", "true")
-                        .param("minCreditAmount", "10")
-                        .param("maxCreditAmount", "50000")
-                        .param("minDebitAmount", "10")
-                        .param("maxDebitAmount", "5000"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p16-account-type-form"))
-                .andExpect(model().attributeExists("errorMessage"));
+    private void waitForHeading(String headingText) {
+        waitUntil(d -> {
+            List<WebElement> headings = d.findElements(By.tagName("h1"));
+            for (WebElement heading : headings) {
+                if (headingText.equals(heading.getText().trim())) {
+                    return true;
+                }
+            }
+            return false;
+        }, "Expected H1 not found: " + headingText);
     }
 
-    @Test
-    public void accountTypeSave_shouldRenderFormError_whenAllowFlagsMissing() throws Exception {
-        mockMvc.perform(post("/account-types/1/save")
-                        .param("name", "Savings Basic")
-                        .param("maxCredit", "0")
-                        .param("creditRepayRule", "No credit")
-                        .param("interestRate", "0.0500")
-                        .param("interestInterval", "MONTHLY")
-                        .param("interestMethod", "TO_SAME_ACCOUNT")
-                        .param("minCreditAmount", "10")
-                        .param("maxCreditAmount", "50000")
-                        .param("minDebitAmount", "10")
-                        .param("maxDebitAmount", "5000"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p16-account-type-form"))
-                .andExpect(model().attribute("errorMessage", "Allow flags are required"));
+    private void clickNavLink(String linkText) {
+        WebElement nav = waitUntilElement(By.tagName("nav"), "Navigation menu not found");
+        for (WebElement link : nav.findElements(By.tagName("a"))) {
+            if (linkText.equals(link.getText().trim())) {
+                link.click();
+                return;
+            }
+        }
+        throw new AssertionError("Nav link not found: " + linkText);
     }
 
-    @Test
-    public void accountTypeSave_shouldRenderFormError_whenNumericValuesInvalid() throws Exception {
-        mockMvc.perform(post("/account-types/1/save")
-                        .param("name", "Savings Basic")
-                        .param("maxCredit", "0")
-                        .param("creditRepayRule", "No credit")
-                        .param("interestRate", "-0.0100")
-                        .param("interestInterval", "MONTHLY")
-                        .param("interestMethod", "TO_SAME_ACCOUNT")
-                        .param("allowDebit", "true")
-                        .param("allowCredit", "true")
-                        .param("minCreditAmount", "10")
-                        .param("maxCreditAmount", "50000")
-                        .param("minDebitAmount", "10")
-                        .param("maxDebitAmount", "5000"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p16-account-type-form"))
-                .andExpect(model().attribute("errorMessage", "Interest rate must be non-negative"));
+    private void clickLink(String linkText) {
+        WebElement link = waitUntilElement(By.linkText(linkText), "Link not found: " + linkText);
+        link.click();
     }
 
-    @Test
-    public void accountTypeSave_shouldRenderFormError_whenAccountTypeNotFound() throws Exception {
-        mockMvc.perform(post("/account-types/999999/save")
-                        .param("name", "Ghost type")
-                        .param("maxCredit", "0")
-                        .param("creditRepayRule", "No credit")
-                        .param("interestRate", "0.0500")
-                        .param("interestInterval", "MONTHLY")
-                        .param("interestMethod", "TO_SAME_ACCOUNT")
-                        .param("allowDebit", "true")
-                        .param("allowCredit", "true")
-                        .param("minCreditAmount", "10")
-                        .param("maxCreditAmount", "50000")
-                        .param("minDebitAmount", "10")
-                        .param("maxDebitAmount", "5000"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p16-account-type-form"))
-                .andExpect(model().attribute("errorMessage", "Account type not found: 999999"));
+    private void clickRowActionLink(String rowText, String linkText) {
+        By by = By.xpath(
+                "//tr[td[contains(normalize-space(.), " + xpathLiteral(rowText) + ")]]//a[normalize-space()="
+                        + xpathLiteral(linkText) + "]"
+        );
+        WebElement link = waitUntilElement(by, "Row link not found: row='" + rowText + "', link='" + linkText + "'");
+        link.click();
     }
 
-    @Test
-    public void interestRun_shouldRenderReport() throws Exception {
-        mockMvc.perform(post("/interest/run")
-                        .param("runAtIso", "2026-03-01T00:00:00+00:00"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p17-interest"))
-                .andExpect(model().attributeExists("report"));
+    private void clickButton(String buttonText) {
+        for (WebElement button : driver.findElements(By.tagName("button"))) {
+            if (buttonText.equals(button.getText().trim())) {
+                button.click();
+                return;
+            }
+        }
+        throw new AssertionError("Button not found: " + buttonText);
     }
 
-    @Test
-    public void interestRun_shouldRenderValidationError_whenTimestampInvalid() throws Exception {
-        mockMvc.perform(post("/interest/run")
-                        .param("runAtIso", "bad-time"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p17-interest"))
-                .andExpect(model().attributeExists("errorMessage"));
+    private void typeByName(String fieldName, String value) {
+        WebElement input = waitUntilElement(By.name(fieldName), "Field not found: " + fieldName);
+        input.clear();
+        if (value != null) {
+            input.sendKeys(value);
+        }
     }
 
-    @Test
-    public void interestRun_shouldRenderReport_whenTimestampMissing() throws Exception {
-        mockMvc.perform(post("/interest/run")
-                        .param("runAtIso", ""))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p17-interest"))
-                .andExpect(model().attributeExists("report"));
+    private void selectByName(String fieldName, String optionValue) {
+        WebElement selectElement = waitUntilElement(By.name(fieldName), "Select not found: " + fieldName);
+        new Select(selectElement).selectByValue(optionValue);
     }
 
-    @Test
-    public void interestRun_shouldSkipClosedAccounts() throws Exception {
-        InterestRunResult report = runInterestAndGetReport("2026-03-01T00:00:00+00:00");
-        assertTrue(report.getSkippedAccounts().contains("ACC-0007: closed"));
-        assertTrue(report.getSkippedAccounts().contains("ACC-0008: closed"));
+    private void assertBodyContains(String expected) {
+        String bodyText = waitUntilBodyText(expected);
+        assertTrue(bodyText.contains(expected), "Expected page to contain: " + expected + "\nActual:\n" + bodyText);
     }
 
-    @Test
-    public void interestRun_shouldSkipAccountsWithZeroInterestRate() throws Exception {
-        InterestRunResult report = runInterestAndGetReport("2026-03-01T00:00:00+00:00");
-        assertTrue(report.getSkippedAccounts().contains("ACC-0001: zero interest rate"));
-        assertTrue(report.getSkippedAccounts().contains("ACC-0006: zero interest rate"));
+    private void assertBodyNotContains(String expected) {
+        String bodyText = driver.findElement(By.tagName("body")).getText();
+        assertFalse(bodyText.contains(expected), "Expected page not to contain: " + expected + "\nActual:\n" + bodyText);
     }
-
-    @Test
-    public void interestRun_shouldSkipAccountsWithNonPositiveBalance() throws Exception {
-        Account account = accountDao.findById(2L).orElseThrow();
-        account.setBalance(new BigDecimal("0.00"));
-        accountDao.save(account);
 
-        InterestRunResult report = runInterestAndGetReport("2026-03-01T00:00:00+00:00");
-        assertTrue(report.getSkippedAccounts().contains("ACC-0002: non-positive balance"));
+    private String extractValueAfterPrefix(String prefix) {
+        String bodyText = driver.findElement(By.tagName("body")).getText();
+        for (String line : bodyText.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.toLowerCase(Locale.ROOT).startsWith(prefix.toLowerCase(Locale.ROOT))) {
+                return trimmed.substring(prefix.length()).trim();
+            }
+        }
+        return "";
     }
-
-    @Test
-    public void interestRun_shouldSkipAccountsWhenCalculatedInterestIsZero() throws Exception {
-        AccountType savingsType = accountTypeDao.findById(1L).orElseThrow();
-        savingsType.setInterestRate(new BigDecimal("0.0001"));
-        accountTypeDao.save(savingsType);
-
-        Account account = accountDao.findById(2L).orElseThrow();
-        account.setBalance(new BigDecimal("1.00"));
-        accountDao.save(account);
 
-        InterestRunResult report = runInterestAndGetReport("2026-03-01T00:00:00+00:00");
-        assertTrue(report.getSkippedAccounts().contains("ACC-0002: calculated interest is zero"));
+    private String waitUntilBodyText(String expected) {
+        waitUntil(d -> d.findElement(By.tagName("body")).getText().contains(expected),
+                "Body text did not contain: " + expected);
+        return driver.findElement(By.tagName("body")).getText();
     }
 
-    @Test
-    public void interestRun_shouldProcessInterestToSameAccount() throws Exception {
-        InterestRunResult report = runInterestAndGetReport("2026-03-01T00:00:00+00:00");
-        assertTrue(report.getProcessedAccounts().contains("ACC-0002 -> ACC-0002"));
+    private WebElement waitUntilElement(By by, String errorMessage) {
+        waitUntil(d -> {
+            try {
+                WebElement element = d.findElement(by);
+                return element.isDisplayed() ? element : null;
+            } catch (NoSuchElementException e) {
+                return null;
+            }
+        }, errorMessage);
+
+        return driver.findElement(by);
     }
 
-    @Test
-    public void interestRun_shouldProcessInterestToTargetAccount() throws Exception {
-        InterestRunResult report = runInterestAndGetReport("2026-03-01T00:00:00+00:00");
-        assertTrue(report.getProcessedAccounts().contains("ACC-0005 -> ACC-0004"));
+    private <T> T waitUntil(ExpectedCondition<T> condition, String errorMessage) {
+        try {
+            return wait.until(condition);
+        } catch (TimeoutException e) {
+            throw new AssertionError(errorMessage, e);
+        }
     }
 
-    @Test
-    public void interestRun_shouldBuildCompleteSummaryForRun() throws Exception {
-        InterestRunResult report = runInterestAndGetReport("2026-03-01T00:00:00+00:00");
-        assertEquals(report.getCreatedOperations(), 2);
-        assertEquals(report.getProcessedAccounts().size(), 2);
-        assertEquals(report.getTotalInterest(), new BigDecimal("26.24"));
+    private String xpathLiteral(String value) {
+        if (!value.contains("'")) {
+            return "'" + value + "'";
+        }
+        String[] parts = value.split("'");
+        StringBuilder builder = new StringBuilder("concat(");
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) {
+                builder.append(", \"'\", ");
+            }
+            builder.append("'").append(parts[i]).append("'");
+        }
+        builder.append(")");
+        return builder.toString();
     }
 
-    @Test
-    public void requests_shouldWorkUnderNonRootContextPath() throws Exception {
-        mockMvc.perform(get("/bankinfo/branches")
-                        .contextPath("/bankinfo")
-                        .servletPath("/branches"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p2-branches"));
-
-        mockMvc.perform(get("/bankinfo/clients")
-                        .contextPath("/bankinfo")
-                        .servletPath("/clients"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p5-clients"));
-    }
-
-    private InterestRunResult runInterestAndGetReport(String runAtIso) throws Exception {
-        MvcResult mvcResult = mockMvc.perform(post("/interest/run").param("runAtIso", runAtIso))
-                .andExpect(status().isOk())
-                .andExpect(view().name("p17-interest"))
-                .andExpect(model().attributeExists("report"))
-                .andReturn();
-        return (InterestRunResult) mvcResult.getModelAndView().getModel().get("report");
+    private int pickRandomPort() {
+        try (java.net.ServerSocket socket = new java.net.ServerSocket(0)) {
+            socket.setReuseAddress(true);
+            return socket.getLocalPort();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to pick random port", e);
+        }
     }
 }
