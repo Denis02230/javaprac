@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SmokeTest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.app</a> &gt; <span class="el_source">SmokeTest.java</span></div><h1>SmokeTest.java</h1><pre class="source lang-java linenums">package bankinfo.app;
+
+import bankinfo.model.Account;
+import bankinfo.util.HibernateUtil;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+
+import java.util.List;
+
+<span class="nc" id="L10">public class SmokeTest {</span>
+
+    public static void main(String[] args) {
+        try {
+<span class="fc" id="L14">            Session session = HibernateUtil.getSessionFactory().openSession();</span>
+<span class="fc" id="L15">            Transaction tx = session.beginTransaction();</span>
+
+<span class="fc" id="L17">            List&lt;Account&gt; accounts = session.createQuery(</span>
+                    &quot;select a from Account a &quot; +
+                    &quot;join fetch a.client &quot; +
+                    &quot;join fetch a.branch &quot; +
+                    &quot;join fetch a.accountType &quot; +
+                    &quot;left join fetch a.interestTargetAccount &quot; +
+                    &quot;order by a.id&quot;,
+                    Account.class
+<span class="fc" id="L25">            ).list();</span>
+
+<span class="fc" id="L27">            tx.commit();</span>
+<span class="fc" id="L28">            session.close();</span>
+
+<span class="fc" id="L30">            System.out.println(&quot;Loaded accounts: &quot; + accounts.size());</span>
+
+<span class="fc bfc" id="L32" title="All 2 branches covered.">            for (Account account : accounts) {</span>
+<span class="fc" id="L33">                System.out.println(account);</span>
+<span class="fc" id="L34">                System.out.println(&quot;  client=&quot; + account.getClient().getDisplayName());</span>
+<span class="fc" id="L35">                System.out.println(&quot;  branch=&quot; + account.getBranch().getName());</span>
+<span class="fc" id="L36">                System.out.println(&quot;  accountType=&quot; + account.getAccountType().getName());</span>
+
+<span class="fc bfc" id="L38" title="All 2 branches covered.">                if (account.getInterestTargetAccount() != null) {</span>
+<span class="fc" id="L39">                    System.out.println(&quot;  interestTarget=&quot; + account.getInterestTargetAccount().getAccountNumber());</span>
+                } else {
+<span class="fc" id="L41">                    System.out.println(&quot;  interestTarget=null&quot;);</span>
+                }
+<span class="fc" id="L43">            }</span>
+        } finally {
+<span class="fc" id="L45">            HibernateUtil.shutdown();</span>
+        }
+<span class="fc" id="L47">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

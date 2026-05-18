@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AccountType.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.model</a> &gt; <span class="el_source">AccountType.java</span></div><h1>AccountType.java</h1><pre class="source lang-java linenums">package bankinfo.model;
+
+import io.hypersistence.utils.hibernate.type.basic.PostgreSQLEnumType;
+import org.hibernate.annotations.Type;
+import org.hibernate.annotations.TypeDef;
+
+import javax.persistence.*;
+import java.math.BigDecimal;
+
+@Entity
+@Table(name = &quot;account_type&quot;)
+@TypeDef(name = &quot;pgsql_enum&quot;, typeClass = PostgreSQLEnumType.class)
+public class AccountType {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = &quot;account_type_id&quot;)
+    private Long id;
+
+    @Column(name = &quot;name&quot;, nullable = false, length = 200)
+    private String name;
+
+    @Column(name = &quot;max_credit&quot;, nullable = false, precision = 14, scale = 2)
+    private BigDecimal maxCredit;
+
+    @Column(name = &quot;credit_repay_rule&quot;, nullable = false, length = 400)
+    private String creditRepayRule;
+
+    @Column(name = &quot;interest_rate&quot;, nullable = false, precision = 7, scale = 4)
+    private BigDecimal interestRate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;interest_interval&quot;, nullable = false, columnDefinition = &quot;interest_interval_enum&quot;)
+    @Type(type = &quot;pgsql_enum&quot;)
+    private InterestInterval interestInterval;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;interest_method&quot;, nullable = false, columnDefinition = &quot;interest_method_enum&quot;)
+    @Type(type = &quot;pgsql_enum&quot;)
+    private InterestMethod interestMethod;
+
+    @Column(name = &quot;allow_debit&quot;, nullable = false)
+    private Boolean allowDebit;
+
+    @Column(name = &quot;allow_credit&quot;, nullable = false)
+    private Boolean allowCredit;
+
+    @Column(name = &quot;min_credit_amount&quot;, precision = 14, scale = 2)
+    private BigDecimal minCreditAmount;
+
+    @Column(name = &quot;max_credit_amount&quot;, precision = 14, scale = 2)
+    private BigDecimal maxCreditAmount;
+
+    @Column(name = &quot;min_debit_amount&quot;, precision = 14, scale = 2)
+    private BigDecimal minDebitAmount;
+
+    @Column(name = &quot;max_debit_amount&quot;, precision = 14, scale = 2)
+    private BigDecimal maxDebitAmount;
+
+<span class="fc" id="L60">    public AccountType() {</span>
+<span class="fc" id="L61">    }</span>
+
+    public Long getId() {
+<span class="fc" id="L64">        return id;</span>
+    }
+
+    public String getName() {
+<span class="fc" id="L68">        return name;</span>
+    }
+
+    public void setName(String name) {
+<span class="fc" id="L72">        this.name = name;</span>
+<span class="fc" id="L73">    }</span>
+
+    public BigDecimal getMaxCredit() {
+<span class="fc" id="L76">        return maxCredit;</span>
+    }
+
+    public void setMaxCredit(BigDecimal maxCredit) {
+<span class="fc" id="L80">        this.maxCredit = maxCredit;</span>
+<span class="fc" id="L81">    }</span>
+
+    public String getCreditRepayRule() {
+<span class="fc" id="L84">        return creditRepayRule;</span>
+    }
+
+    public void setCreditRepayRule(String creditRepayRule) {
+<span class="fc" id="L88">        this.creditRepayRule = creditRepayRule;</span>
+<span class="fc" id="L89">    }</span>
+
+    public BigDecimal getInterestRate() {
+<span class="fc" id="L92">        return interestRate;</span>
+    }
+
+    public void setInterestRate(BigDecimal interestRate) {
+<span class="fc" id="L96">        this.interestRate = interestRate;</span>
+<span class="fc" id="L97">    }</span>
+
+    public InterestInterval getInterestInterval() {
+<span class="fc" id="L100">        return interestInterval;</span>
+    }
+
+    public void setInterestInterval(InterestInterval interestInterval) {
+<span class="fc" id="L104">        this.interestInterval = interestInterval;</span>
+<span class="fc" id="L105">    }</span>
+
+    public InterestMethod getInterestMethod() {
+<span class="fc" id="L108">        return interestMethod;</span>
+    }
+
+    public void setInterestMethod(InterestMethod interestMethod) {
+<span class="fc" id="L112">        this.interestMethod = interestMethod;</span>
+<span class="fc" id="L113">    }</span>
+
+    public Boolean getAllowDebit() {
+<span class="fc" id="L116">        return allowDebit;</span>
+    }
+
+    public void setAllowDebit(Boolean allowDebit) {
+<span class="fc" id="L120">        this.allowDebit = allowDebit;</span>
+<span class="fc" id="L121">    }</span>
+
+    public Boolean getAllowCredit() {
+<span class="fc" id="L124">        return allowCredit;</span>
+    }
+
+    public void setAllowCredit(Boolean allowCredit) {
+<span class="fc" id="L128">        this.allowCredit = allowCredit;</span>
+<span class="fc" id="L129">    }</span>
+
+    public BigDecimal getMinCreditAmount() {
+<span class="fc" id="L132">        return minCreditAmount;</span>
+    }
+
+    public void setMinCreditAmount(BigDecimal minCreditAmount) {
+<span class="fc" id="L136">        this.minCreditAmount = minCreditAmount;</span>
+<span class="fc" id="L137">    }</span>
+
+    public BigDecimal getMaxCreditAmount() {
+<span class="fc" id="L140">        return maxCreditAmount;</span>
+    }
+
+    public void setMaxCreditAmount(BigDecimal maxCreditAmount) {
+<span class="fc" id="L144">        this.maxCreditAmount = maxCreditAmount;</span>
+<span class="fc" id="L145">    }</span>
+
+    public BigDecimal getMinDebitAmount() {
+<span class="fc" id="L148">        return minDebitAmount;</span>
+    }
+
+    public void setMinDebitAmount(BigDecimal minDebitAmount) {
+<span class="fc" id="L152">        this.minDebitAmount = minDebitAmount;</span>
+<span class="fc" id="L153">    }</span>
+
+    public BigDecimal getMaxDebitAmount() {
+<span class="fc" id="L156">        return maxDebitAmount;</span>
+    }
+
+    public void setMaxDebitAmount(BigDecimal maxDebitAmount) {
+<span class="fc" id="L160">        this.maxDebitAmount = maxDebitAmount;</span>
+<span class="fc" id="L161">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L165">        return &quot;AccountType{&quot; +</span>
+                &quot;id=&quot; + id +
+                &quot;, name='&quot; + name + '\'' +
+                &quot;, maxCredit=&quot; + maxCredit +
+                &quot;, interestRate=&quot; + interestRate +
+                &quot;, interestInterval=&quot; + interestInterval +
+                &quot;, interestMethod=&quot; + interestMethod +
+                &quot;, allowDebit=&quot; + allowDebit +
+                &quot;, allowCredit=&quot; + allowCredit +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

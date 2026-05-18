@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - All Results</title>
+<link href="css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="css/style.css" rel="stylesheet" type="text/css"/>
+<script src="js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>All Results</h1>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a class="successGroup" href="#">Gradle Test Run :webSystemTest</a>
+</li>
+</ul>
+<div class="tab">
+<h2>Gradle Test Run :webSystemTest</h2>
+<h1>Gradle Test Run :webSystemTest</h1>
+<div class="tab-container">
+<ul class="tabLinks">
+<li>
+<a class="" href="#">summary</a>
+</li>
+<li>
+<a class="" href="#">error output</a>
+</li>
+</ul>
+<div class="tab">
+<h2>summary</h2>
+<div>
+<div class="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox">
+<div class="counter">19</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox">
+<div class="counter">0</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox">
+<div class="counter">0</div>
+<p>skipped</p>
+</div>
+</td>
+<td>
+<div class="infoBox duration">
+<div class="counter">42.374s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox success successRate">
+<div class="percent">100%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<table class="test-results">
+<thead>
+<tr>
+<th>Child</th>
+<th hidden="">Name</th>
+<th>Tests</th>
+<th>Failures</th>
+<th>Skipped</th>
+<th>Duration</th>
+<th>Success rate</th>
+</tr>
+</thead>
+<tr>
+<td class="success">
+<a href="Y4sLHJq7q7U/index.html">bankinfo.web.WebSystemTest</a>
+</td>
+<td class="path" hidden="">bankinfo.web.WebSystemTest</td>
+<td>19</td>
+<td>0</td>
+<td>0</td>
+<td>37.191s</td>
+<td class="success">100%</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="tab">
+<h2>error output</h2>
+<span class="code">
+<pre id="root-0-test-stderr-Gradle Test Run :webSystemTest">SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+May 04, 2026 5:32:38 PM org.apache.coyote.AbstractProtocol pause
+INFO: Pausing ProtocolHandler [&quot;http-nio-34243&quot;]
+May 04, 2026 5:32:38 PM org.apache.catalina.core.StandardService stopInternal
+INFO: Stopping service [Tomcat]
+May 04, 2026 5:32:38 PM org.apache.catalina.core.ApplicationContext log
+INFO: Destroying Spring FrameworkServlet 'bankinfo'
+May 04, 2026 5:32:38 PM org.apache.catalina.loader.WebappClassLoaderBase clearReferencesThreads
+WARNING: The web application [ROOT] appears to have started a thread named [Hibernate Connection Pool Validation Thread] but has failed to stop it. This is very likely to create a memory leak. Stack trace of thread:
+ java.base/jdk.internal.misc.Unsafe.park(Native Method)
+ java.base/java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:271)
+ java.base/java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos(AbstractQueuedSynchronizer.java:1803)
+ java.base/java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:1166)
+ java.base/java.util.concurrent.ScheduledThreadPoolExecutor$DelayedWorkQueue.take(ScheduledThreadPoolExecutor.java:883)
+ java.base/java.util.concurrent.ThreadPoolExecutor.getTask(ThreadPoolExecutor.java:1016)
+ java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1076)
+ java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+ java.base/java.lang.Thread.run(Thread.java:1474)
+May 04, 2026 5:32:38 PM org.apache.catalina.loader.WebappClassLoaderBase checkThreadLocalsForLeaks
+WARNING: When running on Java 9 or later you need to add &quot;--add-opens=java.base/java.lang=ALL-UNNAMED&quot; to the JVM command line arguments to enable ThreadLocal memory leak detection. Alternatively, you can suppress this warning by disabling ThreadLocal memory leak detection.
+May 04, 2026 5:32:38 PM org.apache.catalina.loader.WebappClassLoaderBase clearReferencesRmiTargets
+WARNING: When running on Java 9 or later you need to add &quot;--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED&quot; to the JVM command line arguments to enable RMI Target memory leak detection. Alternatively, you can suppress this warning by disabling RMI Target memory leak detection.
+May 04, 2026 5:32:38 PM org.apache.coyote.AbstractProtocol stop
+INFO: Stopping ProtocolHandler [&quot;http-nio-34243&quot;]
+May 04, 2026 5:32:38 PM org.apache.coyote.AbstractProtocol destroy
+INFO: Destroying ProtocolHandler [&quot;http-nio-34243&quot;]
+</pre>
+<button class="clipboard-copy-btn" aria-label="Copy to clipboard" data-copy-element-id="root-0-test-stderr-Gradle Test Run :webSystemTest">Copy</button>
+</span>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="https://www.gradle.org">Gradle 9.4.1</a> at May 4, 2026, 5:32:39 PM</p>
+</div>
+</div>
+</body>
+</html>

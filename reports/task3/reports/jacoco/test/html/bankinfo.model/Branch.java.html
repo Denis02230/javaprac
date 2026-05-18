@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Branch.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">bankinfo</a> &gt; <a href="index.source.html" class="el_package">bankinfo.model</a> &gt; <span class="el_source">Branch.java</span></div><h1>Branch.java</h1><pre class="source lang-java linenums">package bankinfo.model;
+
+import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = &quot;branch&quot;)
+public class Branch {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = &quot;branch_id&quot;)
+    private Long id;
+
+    @Column(name = &quot;name&quot;, nullable = false, length = 200)
+    private String name;
+
+    @Column(name = &quot;address&quot;, nullable = false, length = 400)
+    private String address;
+
+<span class="fc" id="L22">    @OneToMany(mappedBy = &quot;branch&quot;)</span>
+    @OrderBy(&quot;id ASC&quot;)
+    private List&lt;Account&gt; accounts = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L26">    public Branch() {</span>
+<span class="fc" id="L27">    }</span>
+
+<span class="fc" id="L29">    public Branch(String name, String address) {</span>
+<span class="fc" id="L30">        this.name = name;</span>
+<span class="fc" id="L31">        this.address = address;</span>
+<span class="fc" id="L32">    }</span>
+
+    public Long getId() {
+<span class="fc" id="L35">        return id;</span>
+    }
+
+    public String getName() {
+<span class="fc" id="L39">        return name;</span>
+    }
+
+    public void setName(String name) {
+<span class="fc" id="L43">        this.name = name;</span>
+<span class="fc" id="L44">    }</span>
+
+    public String getAddress() {
+<span class="fc" id="L47">        return address;</span>
+    }
+
+    public void setAddress(String address) {
+<span class="fc" id="L51">        this.address = address;</span>
+<span class="fc" id="L52">    }</span>
+
+    public List&lt;Account&gt; getAccounts() {
+<span class="fc" id="L55">        return accounts;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L60">        return &quot;Branch{&quot; +</span>
+                &quot;id=&quot; + id +
+                &quot;, name='&quot; + name + '\'' +
+                &quot;, address='&quot; + address + '\'' +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
